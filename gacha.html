@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>確率変動ガチャシミュレーター</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #1a1a1a; color: #ffffff; text-align: center; padding: 20px; margin: 0; transition: background-color 0.1s; }
+        h1 { color: #ffcc00; margin-bottom: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #2a2a2a; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .secret-area { margin-bottom: 20px; padding: 10px; background: #333; border-radius: 8px; min-height: 50px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .secret-input { padding: 8px; font-size: 16px; border-radius: 5px; border: 1px solid #555; background: #111; color: #fff; text-align: center; width: 150px; }
+        .fever-status { color: #ff3f34; font-weight: bold; font-size: 18px; display: none; }
+        .fire-boost-status { color: #ff6347; font-weight: bold; font-size: 18px; display: none; }
+        .admin-status { color: #00cec9; font-weight: bold; font-size: 14px; display: none; }
+        .admin-select { padding: 6px; font-size: 14px; border-radius: 5px; background: #111; color: #fff; border: 1px solid #00cec9; margin: 5px 0; width: 180px; }
+        .admin-checkbox { margin: 5px 10px; accent-color: #00cec9; }
+        .btn { background: linear-gradient(45deg, #ff4500, #ff8c00); color: white; border: none; padding: 15px 40px; font-size: 18px; font-weight: bold; border-radius: 30px; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s; box-shadow: 0 4px 10px rgba(255, 69, 0, 0.4); margin: 10px; }
+        .btn:hover:not(:disabled) { transform: scale(1.05); }
+        .btn:active:not(:disabled) { transform: scale(0.95); }
+        .btn-small { padding: 6px 12px; font-size: 12px; margin: 5px 2px; }
+        .btn-sell { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .btn-sell:hover:not(:disabled) { transform: scale(1.05); }
+        .btn-add { background: linear-gradient(45deg, #27ae60, #229954); }
+        .btn-add:hover:not(:disabled) { transform: scale(1.05); }
+        .btn-create { background: linear-gradient(45deg, #8e44ad, #6c3483); }
+        .btn-create:hover:not(:disabled) { transform: scale(1.05); }
+        .btn:disabled { background: linear-gradient(45deg, #555, #333); cursor: not-allowed; opacity: 0.5; }
+        
+        .result-box { min-height: 120px; margin: 30px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1f1f1f; border-radius: 10px; border: 1px solid #333; padding: 10px; }
+        #result-display { font-size: 32px; font-weight: bold; min-height: 45px; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+        #mutation-display { font-size: 24px; font-weight: bold; margin-top: 10px; min-height: 35px; }
+        #attribute-display { font-size: 20px; font-weight: bold; margin-top: 8px; min-height: 25px; }
+
+        .base-section { margin-top: 40px; padding: 20px; background: #1f1f1f; border-radius: 10px; border: 2px solid #4d0080; }
+        .base-title { color: #9b59b6; font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+        .base-count { color: #ffd700; font-size: 16px; margin-bottom: 10px; }
+        .base-count.full { color: #e74c3c; }
+        .base-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; margin-bottom: 20px; }
+        .character-card { background: #333; border-radius: 8px; padding: 10px; border: 2px solid #555; text-align: center; font-size: 12px; position: relative; }
+        .character-card.in-machine { opacity: 0.4; }
+        .character-name { font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .character-attr { font-size: 11px; color: #aaa; margin-bottom: 3px; }
+        .character-mutation { font-size: 10px; color: #ffd700; margin-bottom: 5px; min-height: 12px; }
+        .character-index { color: #888; font-size: 10px; margin-bottom: 5px; }
+
+        .machine-section { margin-top: 40px; padding: 20px; background: #1a0033; border-radius: 10px; border: 2px solid #8e44ad; }
+        .machine-title { color: #8e44ad; font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+        .machine-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .machine-slot { background: #333; border-radius: 8px; padding: 15px; border: 2px solid #666; text-align: center; font-size: 12px; min-height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .machine-slot.empty { border-style: dashed; color: #666; }
+        .machine-slot.filled { border-color: #8e44ad; }
+        .machine-slot-content { font-weight: bold; }
+        .machine-info { color: #aaa; font-size: 11px; margin-bottom: 10px; }
+        .machine-buttons { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .modal-content { background-color: #2a2a2a; margin: 20% auto; padding: 30px; border: 2px solid #8e44ad; border-radius: 10px; width: 300px; text-align: center; }
+        .modal-title { color: #8e44ad; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .modal-text { color: #ffffff; font-size: 14px; margin-bottom: 20px; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
+        .modal-btn { padding: 10px 20px; font-size: 14px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; }
+        .modal-btn-yes { background: #e74c3c; color: white; }
+        .modal-btn-yes:hover { background: #c0392b; }
+        .modal-btn-no { background: #555; color: white; }
+        .modal-btn-no:hover { background: #666; }
+
+        .common { color: #aaaaaa; } 
+        .rare { color: #3498db; } 
+        .epic { color: #9b59b6; } 
+        .legend { color: #f1c40f; text-shadow: 0 0 8px #f1c40f; } 
+        .mythic { color: #e67e22; text-shadow: 0 0 10px #e67e22; } 
+        .god { color: #e74c3c; font-size: 36px; text-shadow: 0 0 15px #e74c3c; font-style: italic; } 
+        .secret { color: #1abc9c; text-shadow: 0 0 12px #1abc9c; } 
+        .eternal { color: #fd79a8; font-size: 38px; text-shadow: 0 0 20px #fd79a8; font-weight: 900; }
+        .divine { color: #87ceeb; text-shadow: 0 0 10px #87ceeb; }
+        .og { color: #00cec9; text-shadow: 0 0 25px #00cec9; letter-spacing: 2px; }
+        
+        .default-attr { color: #888888; text-shadow: 0 0 5px #888888; }
+        .gold-attr { color: #ffd700; text-shadow: 0 0 10px #ffd700; font-weight: bold; }
+        .diamond-attr { color: #b9f2ff; text-shadow: 0 0 10px #b9f2ff; font-weight: bold; }
+        .rainbow-attr { background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: rainbow-flow 1.5s linear infinite; font-weight: bold; }
+        .candy-attr { background: linear-gradient(90deg, #ff69b4, #ff1493, #ff69b4); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: candy-flow 1.5s linear infinite; font-weight: bold; text-shadow: 0 0 15px rgba(255, 105, 180, 0.8); }
+        .galaxy-attr { background: linear-gradient(90deg, #1a0033, #330066, #4d0099, #6600cc, #330066); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: galaxy-flow 2s linear infinite; font-weight: bold; text-shadow: 0 0 15px rgba(102, 0, 204, 0.8); }
+        .toxic-attr { background: linear-gradient(90deg, #39ff14, #00ff00, #39ff14); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: toxic-flow 1.5s linear infinite; font-weight: bold; text-shadow: 0 0 15px rgba(57, 255, 20, 0.8); }
+        .space-attr { background: linear-gradient(90deg, #1a0033, #4d0080, #0066cc, #1a0033); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: space-flow 2s linear infinite; font-weight: bold; text-shadow: 0 0 15px rgba(102, 0, 204, 0.8); }
+
+        @keyframes rainbow-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes candy-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes galaxy-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes toxic-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes space-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .lightning-text { background: linear-gradient(90deg, #fffb00, #ff0077, #00f0ff, #fffb00); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: lightning-flow 1.5s linear infinite; font-size: 28px; font-weight: 900; filter: drop-shadow(0 0 8px rgba(255,251,0,0.8)); }
+        .ice-text { background: linear-gradient(90deg, #00d4ff, #0099ff, #6699ff, #00d4ff); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: ice-flow 1.5s linear infinite; font-size: 28px; font-weight: 900; filter: drop-shadow(0 0 8px rgba(0,212,255,0.8)); }
+        .fire-text { background: linear-gradient(90deg, #ff4500, #ff6347, #ffa500, #ff4500); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: fire-flow 1.5s linear infinite; font-size: 28px; font-weight: 900; filter: drop-shadow(0 0 8px rgba(255,69,0,0.8)); }
+        .wind-text { background: linear-gradient(90deg, #90ee90, #7fff7f, #32cd32, #90ee90); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: wind-flow 1.5s linear infinite; font-size: 28px; font-weight: 900; filter: drop-shadow(0 0 8px rgba(144, 238, 144, 0.8)); }
+        .love-text { background: linear-gradient(90deg, #ff1493, #ff69b4, #ff1493, #ff69b4, #ff1493); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: love-flow 1.5s linear infinite; font-size: 28px; font-weight: 900; filter: drop-shadow(0 0 8px rgba(255, 20, 147, 0.8)); }
+        .neon-text { background: linear-gradient(90deg, #00ff00, #ff00ff, #00ffff, #00ff00); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: neon-flow 1.5s linear infinite; font-size: 28px; font-weight: 900; filter: drop-shadow(0 0 8px rgba(0,255,0,0.8)) drop-shadow(0 0 8px rgba(255,0,255,0.8)); }
+
+        @keyframes lightning-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes ice-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes fire-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes wind-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes love-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes neon-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        .flash-bg { background-color: #fff69c !important; }
+        .ice-flash-bg { background-color: #b3e5fc !important; }
+        .fire-flash-bg { background-color: #ffe0b2 !important; }
+        .wind-flash-bg { background-color: #e0ffe0 !important; }
+        .love-flash-bg { background-color: #ffe5f0 !important; }
+        .neon-flash-bg { background-color: #00ff00 !important; filter: brightness(1.5); }
+
+        .prob-table { width: 100%; margin-top: 30px; border-collapse: collapse; font-size: 12px; }
+        .prob-table th, .prob-table td { border: 1px solid #444; padding: 6px; text-align: left; }
+        .prob-table th { background-color: #333; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>プレミアムガチャ</h1>
+    
+    <div class="secret-area">
+        <input type="text" id="secret-code" class="secret-input" placeholder="コードを入力" oninput="checkCode()">
+        <div id="fever-message" class="fever-status">🔥 確率2倍モード発動中！残り <span id="timer">15</span>秒 🔥</div>
+        <div id="fire-boost-message" class="fire-boost-status">🔥 炎変異ブースト発動中！残り <span id="fire-timer">30</span>秒 🔥</div>
+        
+        <div id="admin-panel" class="admin-status">
+            <p>⚙️ 管理者モード有効化中</p>
+            <label>レア度: <select id="admin-target" class="admin-select"><option value="none">-- 通常確率 --</option><option value="common">コモン</option><option value="rare">レア</option><option value="epic">エピック</option><option value="legend">レジェンド</option><option value="mythic">ミシック</option><option value="god">GOD</option><option value="secret">secret</option><option value="eternal">エターナル</option><option value="divine">Divine</option><option value="og">OG</option></select></label><br>
+            <label>変異:</label><div><label><input type="checkbox" id="admin-lightning" class="admin-checkbox"> ⚡ 雷</label><label><input type="checkbox" id="admin-ice" class="admin-checkbox"> ❄️ 氷</label><label><input type="checkbox" id="admin-fire" class="admin-checkbox"> 🔥 炎</label><label><input type="checkbox" id="admin-wind" class="admin-checkbox"> 🌪️ 風</label><label><input type="checkbox" id="admin-love" class="admin-checkbox"> 💕 Love</label><label><input type="checkbox" id="admin-neon" class="admin-checkbox"> 🌟 Neon</label></div><br>
+            <label>属性: <select id="admin-attribute" class="admin-select"><option value="none">-- 通常確率 --</option><option value="default">デフォルト</option><option value="gold">ゴールド</option><option value="diamond">ダイヤモンド</option><option value="rainbow">レインボー</option><option value="candy">Candy</option><option value="galaxy">Galaxy</option><option value="toxic">Toxic</option><option value="space">SPACE</option></select></label>
+        </div>
+    </div>
+
+    <button class="btn" onclick="drawGacha()">ガチャを引く！</button>
+    
+    <div class="result-box">
+        <div id="result-display">何が出るかな？</div>
+        <div id="mutation-display"></div>
+        <div id="attribute-display"></div>
+    </div>
+
+    <!-- 拠点セクション -->
+    <div class="base-section">
+        <div class="base-title">📍 拠点</div>
+        <div class="base-count" id="base-count">キャラクター: 0 / 10</div>
+        <div class="base-grid" id="base-grid">
+            <!-- キャラクターカードが動的に追加される -->
+        </div>
+    </div>
+
+    <!-- ミューテーションマシーン -->
+    <div class="machine-section">
+        <div class="machine-title">⚙️ ミューテーションマシーン</div>
+        <div class="machine-info">同じレアリティの3体を投入してアップグレード！</div>
+        <div class="machine-grid" id="machine-grid">
+            <div class="machine-slot empty" id="machine-0">空</div>
+            <div class="machine-slot empty" id="machine-1">空</div>
+            <div class="machine-slot empty" id="machine-2">空</div>
+        </div>
+        <div class="machine-buttons">
+            <button class="btn btn-small btn-create" id="machine-create-btn" onclick="createMutant()" disabled>変異を作成</button>
+            <button class="btn btn-small btn-sell" onclick="clearMachine()">リセット</button>
+        </div>
+    </div>
+
+    <!-- 売却確認モーダル -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-title">確認</div>
+            <div class="modal-text" id="confirmMessage"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-yes" onclick="confirmSell()">はい</button>
+                <button class="modal-btn modal-btn-no" onclick="cancelSell()">いいえ</button>
+            </div>
+        </div>
+    </div>
+
+    <table class="prob-table">
+        <thead><tr><th>レア度</th><th>通常</th><th>2倍時</th><th>変異</th></tr></thead>
+        <tbody>
+            <tr><td class="common">コモン</td><td>39.5%</td><td>0%</td><td rowspan="10">⚡ 5%<br>❄️ 1%<br>🔥 0.5%<br>🌪️ 0.05%<br>💕 0.8%<br>🌟 2%</td></tr>
+            <tr><td class="rare">レア</td><td>20.0%</td><td>40.0%</td></tr>
+            <tr><td class="epic">エピック</td><td>15.0%</td><td>30.0%</td></tr>
+            <tr><td class="legend">レジェンド</td><td>10.0%</td><td>20.0%</td></tr>
+            <tr><td class="mythic">ミシック</td><td>5.0%</td><td>10.0%</td></tr>
+            <tr><td class="god">GOD</td><td>4.5%</td><td>9.0%</td></tr>
+            <tr><td class="secret">secret</td><td>3.0%</td><td>6.0%</td></tr>
+            <tr><td class="eternal">エターナル</td><td>1.5%</td><td>3.0%</td></tr>
+            <tr><td class="divine">Divine</td><td>0.5%</td><td>1.0%</td></tr>
+            <tr><td class="og">OG</td><td>1.0%</td><td>2.0%</td></tr>
+        </tbody>
+    </table>
+
+    <table class="prob-table">
+        <thead><tr><th>属性</th><th>確率</th></tr></thead>
+        <tbody>
+            <tr><td class="default-attr">デフォルト</td><td>42.5%</td></tr>
+            <tr><td class="gold-attr">ゴールド</td><td>22.5%</td></tr>
+            <tr><td class="diamond-attr">ダイヤモンド</td><td>12.5%</td></tr>
+            <tr><td class="rainbow-attr">レインボー</td><td>7.5%</td></tr>
+            <tr><td class="candy-attr">Candy</td><td>9.5%</td></tr>
+            <tr><td class="galaxy-attr">Galaxy</td><td>5%</td></tr>
+            <tr><td class="toxic-attr">Toxic</td><td>0.5%</td></tr>
+            <tr><td class="space-attr">SPACE</td><td>0.5%</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // データ定義
+    const RARITY_DATA = {
+        normal: [
+            { name: 'コモン', id: 'common', chance: 39.5, className: 'common' },
+            { name: 'レア', id: 'rare', chance: 20.0, className: 'rare' },
+            { name: 'エピック', id: 'epic', chance: 15.0, className: 'epic' },
+            { name: 'レジェンド', id: 'legend', chance: 10.0, className: 'legend' },
+            { name: 'ミシック', id: 'mythic', chance: 5.0, className: 'mythic' },
+            { name: 'GOD', id: 'god', chance: 4.5, className: 'god' },
+            { name: 'secret', id: 'secret', chance: 3.0, className: 'secret' },
+            { name: 'エターナル', id: 'eternal', chance: 1.5, className: 'eternal' },
+            { name: 'Divine', id: 'divine', chance: 0.5, className: 'divine' },
+            { name: 'OG', id: 'og', chance: 1.0, className: 'og' }
+        ],
+        fever: [
+            { name: 'コモン', id: 'common', chance: 0.0, className: 'common' },
+            { name: 'レア', id: 'rare', chance: 40.0, className: 'rare' },
+            { name: 'エピック', id: 'epic', chance: 30.0, className: 'epic' },
+            { name: 'レジェンド', id: 'legend', chance: 20.0, className: 'legend' },
+            { name: 'ミシック', id: 'mythic', chance: 10.0, className: 'mythic' },
+            { name: 'GOD', id: 'god', chance: 9.0, className: 'god' },
+            { name: 'secret', id: 'secret', chance: 6.0, className: 'secret' },
+            { name: 'エターナル', id: 'eternal', chance: 3.0, className: 'eternal' },
+            { name: 'Divine', id: 'divine', chance: 1.0, className: 'divine' },
+            { name: 'OG', id: 'og', chance: 2.0, className: 'og' }
+        ]
+    };
+
+    const ATTRIBUTE_DATA = {
+        normal: [
+            { name: 'デフォルト', id: 'default', chance: 42.5, className: 'default-attr', symbol: '✦' },
+            { name: 'ゴールド', id: 'gold', chance: 22.5, className: 'gold-attr', symbol: '✨' },
+            { name: 'ダイヤモンド', id: 'diamond', chance: 12.5, className: 'diamond-attr', symbol: '💎' },
+            { name: 'レインボー', id: 'rainbow', chance: 7.5, className: 'rainbow-attr', symbol: '🌈' },
+            { name: 'Candy', id: 'candy', chance: 9.5, className: 'candy-attr', symbol: '🍬' },
+            { name: 'Galaxy', id: 'galaxy', chance: 5.0, className: 'galaxy-attr', symbol: '🌌' },
+            { name: 'Toxic', id: 'toxic', chance: 0.5, className: 'toxic-attr', symbol: '☠️' }
+        ],
+        admin: [
+            { name: 'デフォルト', id: 'default', chance: 42.5, className: 'default-attr', symbol: '✦' },
+            { name: 'ゴールド', id: 'gold', chance: 22.5, className: 'gold-attr', symbol: '✨' },
+            { name: 'ダイヤモンド', id: 'diamond', chance: 12.5, className: 'diamond-attr', symbol: '💎' },
+            { name: 'レインボー', id: 'rainbow', chance: 7.5, className: 'rainbow-attr', symbol: '🌈' },
+            { name: 'Candy', id: 'candy', chance: 9.5, className: 'candy-attr', symbol: '🍬' },
+            { name: 'Galaxy', id: 'galaxy', chance: 5.0, className: 'galaxy-attr', symbol: '🌌' },
+            { name: 'Toxic', id: 'toxic', chance: 0.5, className: 'toxic-attr', symbol: '☠️' },
+            { name: 'SPACE', id: 'space', chance: 0.5, className: 'space-attr', symbol: '🌌' }
+        ]
+    };
+
+    // 属性アップグレードテーブル
+    const ATTRIBUTE_UPGRADE = {
+        default: 'gold',
+        gold: 'diamond',
+        diamond: 'rainbow',
+        rainbow: 'candy',
+        candy: 'galaxy',
+        galaxy: 'toxic',
+        toxic: 'space'
+    };
+
+    const MUTATION_CHANCES = {
+        lightning: 5.0,
+        ice: 1.0,
+        fire: 0.5,
+        wind: 0.05,
+        love: 0.8,
+        neon: 2.0
+    };
+
+    const MUTATION_SYMBOLS = {
+        lightning: '⚡',
+        ice: '❄️',
+        fire: '🔥',
+        wind: '🌪️',
+        love: '💕',
+        neon: '🌟'
+    };
+
+    // Secret以上のレアリティリスト
+    const HIGH_RARITY_IDS = ['secret', 'eternal', 'divine', 'og'];
+
+    // グローバル状態
+    let isFever = false;
+    let isAdmin = false;
+    let isFireBoost = false;
+    let feverInterval = null;
+    let fireBoostInterval = null;
+    let baseCharacters = [];
+    let machineSlots = [null, null, null];
+    let pendingSellIndex = null;
+    const MAX_BASE = 10;
+    const MACHINE_SLOTS = 3;
+
+    function checkCode() {
+        const input = document.getElementById('secret-code');
+        if (!input) return;
+        
+        const CODE_FEVER = "345268";
+        const CODE_ADMIN = "62375391";
+        const CODE_FIRE_BOOST = "729915";
+
+        if (input.value === CODE_FEVER && !isFever && !isAdmin) {
+            activateFever(input);
+        } else if (input.value === CODE_ADMIN && !isAdmin) {
+            activateAdmin(input);
+        } else if (input.value === CODE_FIRE_BOOST && !isFireBoost) {
+            activateFireBoost(input);
+        }
+    }
+
+    function activateFever(input) {
+        isFever = true;
+        document.getElementById('fever-message').style.display = 'block';
+        input.style.display = 'none';
+        
+        let timeLeft = 15;
+        document.getElementById('timer').innerText = timeLeft;
+        clearInterval(feverInterval);
+        
+        feverInterval = setInterval(function() {
+            timeLeft--;
+            document.getElementById('timer').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                isFever = false;
+                clearInterval(feverInterval);
+                document.getElementById('fever-message').style.display = 'none';
+                input.style.display = 'inline-block';
+                input.value = '';
+            }
+        }, 1000);
+        
+        input.value = '';
+    }
+
+    function activateAdmin(input) {
+        isAdmin = true;
+        document.getElementById('admin-panel').style.display = 'block';
+        input.style.display = 'none';
+        input.value = '';
+    }
+
+    function activateFireBoost(input) {
+        isFireBoost = true;
+        document.getElementById('fire-boost-message').style.display = 'block';
+        input.style.display = 'none';
+        
+        let timeLeft = 30;
+        document.getElementById('fire-timer').innerText = timeLeft;
+        clearInterval(fireBoostInterval);
+        
+        fireBoostInterval = setInterval(function() {
+            timeLeft--;
+            document.getElementById('fire-timer').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                isFireBoost = false;
+                clearInterval(fireBoostInterval);
+                document.getElementById('fire-boost-message').style.display = 'none';
+                input.style.display = 'inline-block';
+                input.value = '';
+            }
+        }, 1000);
+        
+        input.value = '';
+    }
+
+    function selectFromWeightedList(items) {
+        const totalChance = items.reduce((sum, item) => sum + item.chance, 0);
+        const random = Math.random() * totalChance;
+        
+        let cumulativeChance = 0;
+        for (let item of items) {
+            cumulativeChance += item.chance;
+            if (random < cumulativeChance) {
+                return item;
+            }
+        }
+        return items[0];
+    }
+
+    function getMutations() {
+        const mutations = {
+            lightning: false,
+            ice: false,
+            fire: false,
+            wind: false,
+            love: false,
+            neon: false
+        };
+
+        if (isAdmin) {
+            mutations.lightning = document.getElementById('admin-lightning').checked;
+            mutations.ice = document.getElementById('admin-ice').checked;
+            mutations.fire = document.getElementById('admin-fire').checked;
+            mutations.wind = document.getElementById('admin-wind').checked;
+            mutations.love = document.getElementById('admin-love').checked;
+            mutations.neon = document.getElementById('admin-neon').checked;
+        } else {
+            const fireChance = isFireBoost ? 2.5 : 0.5;
+            
+            if (Math.random() * 100 < MUTATION_CHANCES.lightning) mutations.lightning = true;
+            if (Math.random() * 100 < MUTATION_CHANCES.ice) mutations.ice = true;
+            if (Math.random() * 100 < fireChance) mutations.fire = true;
+            if (Math.random() * 100 < MUTATION_CHANCES.wind) mutations.wind = true;
+            if (Math.random() * 100 < MUTATION_CHANCES.love) mutations.love = true;
+            if (Math.random() * 100 < MUTATION_CHANCES.neon) mutations.neon = true;
+        }
+
+        return mutations;
+    }
+
+    function isCharacterInMachine(index) {
+        return machineSlots.some(slot => slot !== null && slot.baseIndex === index);
+    }
+
+    function addToBase(character) {
+        if (baseCharacters.length < MAX_BASE) {
+            baseCharacters.push(character);
+            updateBaseDisplay();
+        }
+    }
+
+    function showSellConfirm(index) {
+        const character = baseCharacters[index];
+        pendingSellIndex = index;
+
+        // Secret以上のレアリティか確認
+        if (HIGH_RARITY_IDS.includes(character.rarity.id)) {
+            const modal = document.getElementById('confirmModal');
+            const message = document.getElementById('confirmMessage');
+            message.innerHTML = `<span class="${character.rarity.className}">${character.rarity.name}</span>を売却しますか？`;
+            modal.style.display = 'block';
+        } else {
+            // Secret未満なら確認なしで売却
+            removeFromBase(index);
+        }
+    }
+
+    function confirmSell() {
+        const modal = document.getElementById('confirmModal');
+        modal.style.display = 'none';
+        if (pendingSellIndex !== null) {
+            removeFromBase(pendingSellIndex);
+            pendingSellIndex = null;
+        }
+    }
+
+    function cancelSell() {
+        const modal = document.getElementById('confirmModal');
+        modal.style.display = 'none';
+        pendingSellIndex = null;
+    }
+
+    function removeFromBase(index) {
+        baseCharacters.splice(index, 1);
+        updateBaseDisplay();
+    }
+
+    function updateBaseDisplay() {
+        const baseGrid = document.getElementById('base-grid');
+        const baseCount = document.getElementById('base-count');
+        
+        baseGrid.innerHTML = '';
+        
+        baseCharacters.forEach((char, index) => {
+            const card = document.createElement('div');
+            const inMachine = isCharacterInMachine(index);
+            card.className = 'character-card' + (inMachine ? ' in-machine' : '');
+            
+            const mutationText = Object.keys(char.mutations)
+                .filter(key => char.mutations[key])
+                .map(key => MUTATION_SYMBOLS[key])
+                .join(' ');
+            
+            card.innerHTML = `
+                <div class="character-index">#${index + 1}</div>
+                <div class="character-name ${char.rarity.className}">${char.rarity.name}</div>
+                <div class="character-attr">${char.attribute.symbol} ${char.attribute.name}</div>
+                <div class="character-mutation">${mutationText}</div>
+                ${!inMachine ? `
+                    <button class="btn btn-small btn-add" onclick="addToMachine(${index})">追加</button>
+                    <button class="btn btn-small btn-sell" onclick="showSellConfirm(${index})">売却</button>
+                ` : ''}
+            `;
+            
+            baseGrid.appendChild(card);
+        });
+        
+        const count = baseCharacters.length;
+        baseCount.textContent = `キャラクター: ${count} / ${MAX_BASE}`;
+        if (count >= MAX_BASE) {
+            baseCount.classList.add('full');
+        } else {
+            baseCount.classList.remove('full');
+        }
+    }
+
+    function addToMachine(baseIndex) {
+        const emptySlot = machineSlots.findIndex(slot => slot === null);
+        if (emptySlot === -1) return;
+
+        const character = baseCharacters[baseIndex];
+        machineSlots[emptySlot] = {
+            character: character,
+            baseIndex: baseIndex
+        };
+
+        updateMachineDisplay();
+        checkMachineValid();
+        updateBaseDisplay();
+    }
+
+    function updateMachineDisplay() {
+        const machineGrid = document.getElementById('machine-grid');
+        
+        machineSlots.forEach((slot, index) => {
+            const slotEl = document.getElementById(`machine-${index}`);
+            
+            if (slot === null) {
+                slotEl.className = 'machine-slot empty';
+                slotEl.innerHTML = '空';
+            } else {
+                const char = slot.character;
+                const mutationText = Object.keys(char.mutations)
+                    .filter(key => char.mutations[key])
+                    .map(key => MUTATION_SYMBOLS[key])
+                    .join('');
+                
+                slotEl.className = 'machine-slot filled';
+                slotEl.innerHTML = `
+                    <div class="machine-slot-content ${char.rarity.className}">${char.rarity.name}</div>
+                    <div style="font-size: 10px; color: #aaa;">${char.attribute.symbol}</div>
+                    ${mutationText ? `<div style="font-size: 11px;">${mutationText}</div>` : ''}
+                    <button class="btn btn-small btn-sell" onclick="removeFromMachine(${index})" style="margin-top: 5px;">削除</button>
+                `;
+            }
+        });
+    }
+
+    function removeFromMachine(slotIndex) {
+        machineSlots[slotIndex] = null;
+        updateMachineDisplay();
+        checkMachineValid();
+        updateBaseDisplay();
+    }
+
+    function checkMachineValid() {
+        const filledSlots = machineSlots.filter(slot => slot !== null);
+        const createBtn = document.getElementById('machine-create-btn');
+
+        if (filledSlots.length === MACHINE_SLOTS) {
+            const rarity = filledSlots[0].character.rarity.id;
+            const allSameRarity = filledSlots.every(slot => slot.character.rarity.id === rarity);
+
+            if (allSameRarity) {
+                createBtn.disabled = false;
+            } else {
+                createBtn.disabled = true;
+            }
+        } else {
+            createBtn.disabled = true;
+        }
+    }
+
+    function createMutant() {
+        console.log('createMutant called');
+        console.log('machineSlots:', machineSlots);
+        
+        if (machineSlots.some(slot => slot === null)) {
+            console.log('Not all slots filled');
+            return;
+        }
+
+        const filledSlots = machineSlots.map(slot => slot);
+        const rarity = filledSlots[0].character.rarity;
+        const baseIndices = filledSlots.map(slot => slot.baseIndex).sort((a, b) => b - a);
+        
+        console.log('Rarity:', rarity);
+        console.log('Base indices to remove:', baseIndices);
+        
+        const currentAttrId = filledSlots[0].character.attribute.id;
+        const upgradedAttrId = ATTRIBUTE_UPGRADE[currentAttrId];
+        
+        let upgradedAttribute = filledSlots[0].character.attribute;
+        
+        if (upgradedAttrId) {
+            const allAttributes = isAdmin ? ATTRIBUTE_DATA.admin : ATTRIBUTE_DATA.normal;
+            const foundAttr = allAttributes.find(attr => attr.id === upgradedAttrId);
+            if (foundAttr) {
+                upgradedAttribute = foundAttr;
+            }
+        }
+        
+        console.log('Upgraded attribute:', upgradedAttribute);
+
+        const newMutant = {
+            rarity: rarity,
+            attribute: upgradedAttribute,
+            mutations: {
+                lightning: false,
+                ice: false,
+                fire: false,
+                wind: false,
+                love: false,
+                neon: false
+            }
+        };
+
+        baseIndices.forEach(idx => {
+            console.log('Removing character at index:', idx);
+            baseCharacters.splice(idx, 1);
+        });
+
+        machineSlots = [null, null, null];
+        updateMachineDisplay();
+        checkMachineValid();
+
+        addToBase(newMutant);
+
+        document.body.classList.add('flash-bg');
+        setTimeout(() => {
+            document.body.classList.remove('flash-bg');
+        }, 200);
+        
+        console.log('Mutant created successfully');
+    }
+
+    function clearMachine() {
+        machineSlots = [null, null, null];
+        updateMachineDisplay();
+        checkMachineValid();
+        updateBaseDisplay();
+    }
+
+    function drawGacha() {
+        const resultDisplay = document.getElementById('result-display');
+        const mutationDisplay = document.getElementById('mutation-display');
+        const attributeDisplay = document.getElementById('attribute-display');
+
+        let selectedItem = null;
+        const currentRarities = isFever ? RARITY_DATA.fever : RARITY_DATA.normal;
+
+        if (isAdmin) {
+            const targetId = document.getElementById('admin-target').value;
+            if (targetId !== 'none') {
+                selectedItem = currentRarities.find(item => item.id === targetId);
+            }
+        }
+
+        if (!selectedItem) {
+            selectedItem = selectFromWeightedList(currentRarities);
+        }
+
+        const mutations = getMutations();
+
+        let selectedAttribute = null;
+        const currentAttributes = isAdmin ? ATTRIBUTE_DATA.admin : ATTRIBUTE_DATA.normal;
+
+        if (isAdmin) {
+            const targetAttr = document.getElementById('admin-attribute').value;
+            if (targetAttr !== 'none') {
+                selectedAttribute = currentAttributes.find(attr => attr.id === targetAttr);
+            }
+        }
+
+        if (!selectedAttribute) {
+            selectedAttribute = selectFromWeightedList(currentAttributes);
+        }
+
+        resultDisplay.innerHTML = `<span class="${selectedItem.className}">${selectedItem.name}</span>`;
+
+        const mutationTexts = [];
+        if (mutations.lightning) mutationTexts.push('<span class="lightning-text">⚡ 雷変異</span>');
+        if (mutations.ice) mutationTexts.push('<span class="ice-text">❄️ 氷変異</span>');
+        if (mutations.fire) mutationTexts.push('<span class="fire-text">🔥 炎変異</span>');
+        if (mutations.wind) mutationTexts.push('<span class="wind-text">🌪️ 風変異</span>');
+        if (mutations.love) mutationTexts.push('<span class="love-text">💕 Love変異</span>');
+        if (mutations.neon) mutationTexts.push('<span class="neon-text">🌟 Neon変異</span>');
+
+        if (mutationTexts.length > 0) {
+            mutationDisplay.innerHTML = mutationTexts.join(' ');
+            
+            if (mutations.lightning) document.body.classList.add('flash-bg');
+            else if (mutations.ice) document.body.classList.add('ice-flash-bg');
+            else if (mutations.fire) document.body.classList.add('fire-flash-bg');
+            else if (mutations.wind) document.body.classList.add('wind-flash-bg');
+            else if (mutations.love) document.body.classList.add('love-flash-bg');
+            else if (mutations.neon) document.body.classList.add('neon-flash-bg');
+
+            setTimeout(function() {
+                document.body.classList.remove('flash-bg', 'ice-flash-bg', 'fire-flash-bg', 'wind-flash-bg', 'love-flash-bg', 'neon-flash-bg');
+            }, 100);
+        } else {
+            mutationDisplay.innerHTML = '';
+        }
+
+        attributeDisplay.innerHTML = `<span class="${selectedAttribute.className}">${selectedAttribute.symbol} ${selectedAttribute.name}</span>`;
+
+        const newCharacter = {
+            rarity: selectedItem,
+            attribute: selectedAttribute,
+            mutations: mutations
+        };
+        addToBase(newCharacter);
+    }
+
+    // モーダルの外をクリックしたときに閉じる
+    window.onclick = function(event) {
+        const modal = document.getElementById('confirmModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+            pendingSellIndex = null;
+        }
+    }
+
+    // 初期化
+    updateBaseDisplay();
+    updateMachineDisplay();
+</script>
+
+</body>
+</html>
