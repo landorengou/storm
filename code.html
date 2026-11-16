@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>超・万能ダッシュボード</title>
+<style>
+  :root {
+    --bg: #f0f2f5; --card: #ffffff; --text: #333333; --border: #dddddd; --accent: #3498db; --accent-hover: #2980b9; --sub: #7f8c8d;
+  }
+  [data-theme="dark"] {
+    --bg: #18191a; --card: #242526; --text: #e4e6eb; --border: #3a3b3c; --accent: #4599ff; --accent-hover: #2d88ff; --sub: #b0b3b8;
+  }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
+  header { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 20px; }
+  h1 { margin: 0; font-size: 1.6em; }
+  .theme-btn { width: auto; padding: 8px 16px; background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+  .card { background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.08); border: 1px solid var(--border); }
+  h2 { margin-top: 0; font-size: 1.15em; border-bottom: 2px solid var(--accent); padding-bottom: 6px; }
+  textarea, input, select { width: 100%; box-sizing: border-box; padding: 8px; margin: 6px 0; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+  button { background: var(--accent); color: #fff; border: none; padding: 10px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 6px; transition: 0.2s; }
+  button:hover { background: var(--accent-hover); }
+  .result { margin-top: 10px; font-weight: bold; color: #e74c3c; font-size: 1.05em; }
+  .todo-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .todo-item span.done { text-decoration: line-through; color: var(--sub); }
+  .del-btn { width: auto; background: #e74c3c; padding: 4px 8px; font-size: 0.8em; margin: 0; }
+  .timer-display { font-size: 2.5em; text-align: center; font-weight: bold; margin: 10px 0; font-variant-numeric: tabular-nums; }
+  .btn-group { display: flex; gap: 8px; }
+  #qrImg { display: block; margin: 10px auto 0; max-width: 150px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚀 超・万能ダッシュボード</h1>
+  <button class="theme-btn" onclick="toggleTheme()">🌓 テーマ切替</button>
+</header>
+
+<div class="grid">
+  <!-- 1. ToDoリスト -->
+  <div class="card">
+    <h2>✅ ToDoリスト（自動保存）</h2>
+    <div style="display:flex; gap:6px;">
+      <input type="text" id="todoInput" placeholder="やることを入力..." onkeypress="if(event.key==='Enter') addTodo()">
+      <button style="width:70px; margin:6px 0;" onclick="addTodo()">追加</button>
+    </div>
+    <div id="todoList"></div>
+  </div>
+
+  <!-- 2. 集中タイマー -->
+  <div class="card">
+    <h2>⏱️ 集中タイマー（25分）</h2>
+    <div class="timer-display" id="timerDisplay">25:00</div>
+    <div class="btn-group">
+      <button onclick="startTimer()">スタート</button>
+      <button onclick="pauseTimer()" style="background:#f39c12;">一時停止</button>
+      <button onclick="resetTimer()" style="background:#95a5a6;">リセット</button>
+    </div>
+  </div>
+
+  <!-- 3. 自動保存メモ帳 -->
+  <div class="card">
+    <h2>📌 自動保存メモ帳</h2>
+    <textarea id="memoArea" rows="6" placeholder="メモを入力（閉じても消えません）..." oninput="saveMemo()"></textarea>
+    <button onclick="copyText('memoArea')" style="background:#2ecc71;">メモをコピー</button>
+  </div>
+
+  <!-- 4. 文字数カウンター -->
+  <div class="card">
+    <h2>📝 文字数カウンター</h2>
+    <textarea id="textInput" rows="4" placeholder="ここにテキストを入力..." oninput="countChars()"></textarea>
+    <div class="result" id="charCount">0文字（空白除く: 0文字 / 行数: 0行）</div>
+  </div>
+
+  <!-- 5. 割引・税込計算機 -->
+  <div class="card">
+    <h2>🏷️ 割引・税込計算機</h2>
+    <input type="number" id="origPrice" placeholder="元の価格（円）" oninput="calcDiscount()">
+    <div style="display:flex; gap:6px;">
+      <input type="number" id="discRate" placeholder="割引率（% OFF）" oninput="calcDiscount()">
+      <select id="taxRate" onchange="calcDiscount()">
+        <option value="1">税込価格で入力</option>
+        <option value="1.1">+ 消費税 10%</option>
+        <option value="1.08">+ 軽減税率 8%</option>
+      </select>
+    </div>
+    <div class="result" id="discResult">支払額: 0円（0円お得）</div>
+  </div>
+
+  <!-- 6. 割り勘計算機 -->
+  <div class="card">
+    <h2>💴 割り勘計算機</h2>
+    <input type="number" id="totalAmount" placeholder="合計金額（円）" oninput="calcSplit()">
+    <input type="number" id="numPeople" placeholder="人数（人）" oninput="calcSplit()">
+    <div class="result" id="splitResult">1人あたり: 0円</div>
+  </div>
+
+  <!-- 7. QRコード生成 -->
+  <div class="card">
+    <h2>📱 QRコード作成</h2>
+    <input type="text" id="qrText" placeholder="URLやテキストを入力...">
+    <button onclick="makeQR()">QRコード生成</button>
+    <img id="qrImg" src="" alt="" style="display:none;">
+  </div>
+
+  <!-- 8. パスワード生成 -->
+  <div class="card">
+    <h2>🔑 パスワード生成</h2>
+    <input type="number" id="pwLength" value="14" min="4" max="64" placeholder="文字数">
+    <button onclick="genPassword()">生成する</button>
+    <input type="text" id="pwOutput" readonly placeholder="ここに生成されます">
+    <button onclick="copyText('pwOutput')" style="background:#2ecc71;">コピーする</button>
+  </div>
+
+  <!-- 9. 西暦・和暦・年齢変換 -->
+  <div class="card">
+    <h2>📅 西暦・和暦・年齢早見</h2>
+    <input type="number" id="birthYear" placeholder="生まれ年を西暦で入力（例: 1995）" oninput="convYear()">
+    <div class="result" id="yearResult">和暦と今年の年齢を表示します</div>
+  </div>
+
+  <!-- 10. 迷った時のルーレット -->
+  <div class="card">
+    <h2>🎯 迷った時のルーレット</h2>
+    <textarea id="rouletteItems" rows="3" placeholder="選択肢を改行で入力&#10;例：&#10;ラーメン&#10;カレー&#10;寿司"></textarea>
+    <button onclick="spinRoulette()">抽選する！</button>
+    <div class="result" id="rouletteResult" style="font-size:1.3em; text-align:center;"></div>
+  </div>
+</div>
+
+<script>
+  // テーマ切替
+  function toggleTheme() {
+    const body = document.body;
+    const isDark = body.getAttribute('data-theme') === 'dark';
+    body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+  }
+  if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+
+  // 1. ToDoリスト
+  let todos = JSON.parse(localStorage.getItem('myTodos') || '[]');
+  function renderTodos() {
+    const list = document.getElementById('todoList');
+    list.innerHTML = '';
+    todos.forEach((t, i) => {
+      list.innerHTML += `<div class="todo-item">
+        <span class="${t.done ? 'done' : ''}" style="cursor:pointer;" onclick="toggleTodo(${i})">${t.done ? '☑️' : '⬜'} ${t.text}</span>
+        <button class="del-btn" onclick="delTodo(${i})">削除</button>
+      </div>`;
+    });
+    localStorage.setItem('myTodos', JSON.stringify(todos));
+  }
+  function addTodo() {
+    const inp = document.getElementById('todoInput');
+    if (inp.value.trim()) { todos.push({ text: inp.value, done: false }); inp.value = ''; renderTodos(); }
+  }
+  function toggleTodo(i) { todos[i].done = !todos[i].done; renderTodos(); }
+  function delTodo(i) { todos.splice(i, 1); renderTodos(); }
+  renderTodos();
+
+  // 2. タイマー
+  let timeLeft = 25 * 60, timerId = null;
+  function updateTimerDisplay() {
+    const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const s = String(timeLeft % 60).padStart(2, '0');
+    document.getElementById('timerDisplay').innerText = `${m}:${s}`;
+  }
+  function startTimer() {
+    if (timerId) return;
+    timerId = setInterval(() => {
+      if (timeLeft > 0) { timeLeft--; updateTimerDisplay(); }
+      else { clearInterval(timerId); timerId = null; alert('25分経過しました！お疲れ様です！'); }
+    }, 1000);
+  }
+  function pauseTimer() { clearInterval(timerId); timerId = null; }
+  function resetTimer() { pauseTimer(); timeLeft = 25 * 60; updateTimerDisplay(); }
+
+  // 3. メモ帳 & コピー
+  const memoArea = document.getElementById('memoArea');
+  memoArea.value = localStorage.getItem('myQuickMemo') || '';
+  function saveMemo() { localStorage.setItem('myQuickMemo', memoArea.value); }
+  function copyText(id) {
+    const el = document.getElementById(id);
+    el.select(); document.execCommand('copy');
+    alert('クリップボードにコピーしました！');
+  }
+
+  // 4. 文字数カウント
+  function countChars() {
+    const t = document.getElementById('textInput').value;
+    const noSpace = t.replace(/\s+/g, '');
+    const lines = t ? t.split(/\r\n|\r|\n/).length : 0;
+    document.getElementById('charCount').innerText = `${t.length}文字（空白除く: ${noSpace.length}文字 / ${lines}行）`;
+  }
+
+  // 5. 割引計算
+  function calcDiscount() {
+    const p = Number(document.getElementById('origPrice').value);
+    const d = Number(document.getElementById('discRate').value);
+    const tax = Number(document.getElementById('taxRate').value);
+    if (p > 0) {
+      const discounted = p * (1 - d / 100);
+      const finalPrice = Math.floor(discounted * tax);
+      const saved = Math.floor(p * tax) - finalPrice;
+      document.getElementById('discResult').innerText = `支払額: ${finalPrice.toLocaleString()}円（${saved.toLocaleString()}円お得）`;
+    }
+  }
+
+  // 6. 割り勘計算
+  function calcSplit() {
+    const total = Number(document.getElementById('totalAmount').value);
+    const people = Number(document.getElementById('numPeople').value);
+    if (total > 0 && people > 0) {
+      document.getElementById('splitResult').innerText = `1人あたり: ${Math.ceil(total / people).toLocaleString()}円（切上）`;
+    }
+  }
+
+  // 7. QRコード
+  function makeQR() {
+    const txt = encodeURIComponent(document.getElementById('qrText').value);
+    if (!txt) return;
+    const img = document.getElementById('qrImg');
+    img.src = `https://qrserver.com{txt}`;
+    img.style.display = 'block';
+  }
+
+  // 8. パスワード生成
+  function genPassword() {
+    const len = Number(document.getElementById('pwLength').value);
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let pw = '';
+for (let i = 0; i < len; i++) pw += chars.charAt(Math.floor(Math.random() * chars.length));
+document.getElementById('pwOutput').value = pw;
+}
+// 9. 西暦・和暦変換
+function convYear() {
+const y = Number(document.getElementById('birthYear').value);
+if (y < 1868) return;
+const currentYear = new Date().getFullYear();
+const age = currentYear - y;
+let wareki = '';
+if (y >= 2019) wareki = 令和${y - 2018 === 1 ? '元' : y - 2018}年;
+else if (y >= 1989) wareki = 平成${y - 1988 === 1 ? '元' : y - 1988}年;
+else if (y >= 1926) wareki = 昭和${y - 1925 === 1 ? '元' : y - 1925}年;
+else wareki = 大正/明治;
+document.getElementById('yearResult').innerText = ${wareki}生まれ ／ 今年 ${age}歳（誕生日前は${age - 1}歳）;
+}
+// 10. ルーレット
+function spinRoulette() {
+const items = document.getElementById('rouletteItems').value.split('\n').map(s => s.trim()).filter(Boolean);
+if (items.length === 0) return;
+const picked = items[Math.floor(Math.random() * items.length)];
+document.getElementById('rouletteResult').innerText = 🎉「${picked}」に決定！;
+}
