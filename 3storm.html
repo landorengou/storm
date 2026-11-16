@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日常の便利ツールボックス</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --border: #e2e8f0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+  .container {
+    width: 100%;
+    max-width: 600px;
+    background: var(--card);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: #f1f5f9;
+  }
+  .tab {
+    flex: 1;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    transition: 0.2s;
+  }
+  .tab.active {
+    background: var(--card);
+    color: var(--primary);
+    border-bottom: 3px solid var(--primary);
+  }
+  .content {
+    padding: 25px;
+    display: none;
+  }
+  .content.active {
+    display: block;
+  }
+  h2 {
+    margin-top: 0;
+    font-size: 1.25rem;
+  }
+  /* タイマー用 */
+  .timer-display {
+    font-size: 4rem;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .btn-group {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  button.action-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button.action-btn:hover {
+    background: var(--primary-hover);
+  }
+  button.secondary-btn {
+    background: #94a3b8;
+  }
+  button.secondary-btn:hover {
+    background: #64748b;
+  }
+  /* パスワード用 */
+  .pw-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .pw-box input {
+    flex: 1;
+    padding: 10px;
+    font-size: 1.1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: monospace;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  /* 文字数カウント用 */
+  textarea {
+    width: 100%;
+    height: 150px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    resize: vertical;
+  }
+  .stats {
+    display: flex;
+    justify-content: space-around;
+    background: #f1f5f9;
+    padding: 15px;
+    border-radius: 6px;
+    margin-top: 15px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab(0)">⏱️ 集中タイマー</button>
+    <button class="tab" onclick="switchTab(1)">🔑 パスワード生成</button>
+    <button class="tab" onclick="switchTab(2)">📝 文字数カウント</button>
+  </div>
+
+  <!-- 1. ポモドーロタイマー -->
+  <div class="content active" id="tab-0">
+    <h2>ポモドーロタイマー（25分集中 / 5分休憩）</h2>
+    <div class="timer-display" id="timer">25:00</div>
+    <div class="btn-group">
+      <button class="action-btn" onclick="startTimer()">スタート</button>
+      <button class="action-btn secondary-btn" onclick="pauseTimer()">一時停止</button>
+      <button class="action-btn secondary-btn" onclick="resetTimer(25)">25分セット</button>
+      <button class="action-btn secondary-btn" onclick="resetTimer(5)">5分休憩</button>
+    </div>
+  </div>
+
+  <!-- 2. パスワード生成 -->
+  <div class="content" id="tab-1">
+    <h2>安全なパスワード生成</h2>
+    <div class="pw-box">
+      <input type="text" id="pw-output" readonly>
+      <button class="action-btn" onclick="copyPassword()">コピー</button>
+    </div>
+    <div class="options">
+      <label>文字数: <span id="len-val">12</span>文字
+        <input type="range" id="pw-len" min="8" max="32" value="12" oninput="document.getElementById('len-val').innerText=this.value; generatePassword()">
+      </label>
+      <label><input type="checkbox" id="inc-num" checked onchange="generatePassword()"> 数字を含める (0-9)</label>
+      <label><input type="checkbox" id="inc-sym" checked onchange="generatePassword()"> 記号を含める (!@#$%^&*)</label>
+    </div>
+    <button class="action-btn" onclick="generatePassword()">再生成する</button>
+  </div>
+
+  <!-- 3. 文字数カウント -->
+  <div class="content" id="tab-2">
+    <h2>リアルタイム文字数カウント</h2>
+    <textarea id="count-input" placeholder="ここに文章を入力または貼り付けてください..." oninput="countChars()"></textarea>
+    <div class="stats">
+      <div>文字数: <span id="char-count">0</span></div>
+      <div>空白なし: <span id="char-nospace">0</span></div>
+      <div>行数: <span id="line-count">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // タブ切り替え
+  function switchTab(index) {
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === index));
+    document.querySelectorAll('.content').forEach((c, i) => c.classList.toggle('active', i === index));
+  }
+
+  // タイマー機能
+  let timeLeft = 25 * 60;
+  let timerId = null;
+
+  function updateDisplay() {
+    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    const s = (timeLeft % 60).toString().padStart(2, '0');
+    document.getElementById('timer').innerText = `${m}:${s}`;
+  }
+
+  function startTimer() {
+    if (timerId) return;
+    timerId = setInterval(() => {
+      if (timeLeft > 0) {
+        timeLeft--;
+        updateDisplay();
+      } else {
+        clearInterval(timerId);
+        timerId = null;
+        alert('時間になりました！');
+      }
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    clearInterval(timerId);
+    timerId = null;
+  }
+
+  function resetTimer(minutes) {
+    pauseTimer();
+    timeLeft = minutes * 60;
+    updateDisplay();
+  }
+
+  // パスワード生成機能
+  function generatePassword() {
+    const len = document.getElementById('pw-len').value;
+    const useNum = document.getElementById('inc-num').checked;
+    const useSym = document.getElementById('inc-sym').checked;
+    let chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (useNum) chars += '0123456789';
+    if (useSym) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    
+    let pw = '';
+    for (let i = 0; i < len; i++) {
+      pw += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    document.getElementById('pw-output').value = pw;
+  }
+
+  function copyPassword() {
+    const input = document.getElementById('pw-output');
+    input.select();
+    document.execCommand('copy');
+    alert('パスワードをコピーしました！');
+  }
+
+  // 文字数カウント機能
+  function countChars() {
+    const text = document.getElementById('count-input').value;
+    document.getElementById('char-count').innerText = text.length;
+    document.getElementById('char-nospace').innerText = text.replace(/\s+/g, '').length;
+    document.getElementById('line-count').innerText = text ? text.split(/\r\n|\r|\n/).length : 0;
+  }
+
+  // 初期実行
+  generatePassword();
+</script>
+
+</body>
+</html>
