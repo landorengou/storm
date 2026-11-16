@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>電卓 | storm</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="site-main">
+        <h1>電卓</h1>
+        <p>四則演算ができます。キーボードからも入力できます。</p>
+
+        <div class="calculator-layout">
+            <section class="calculator" aria-label="電卓">
+                <output class="calculator-display" id="display" aria-live="polite">0</output>
+                <div class="calculator-keys">
+                    <button class="clear" type="button" data-action="clear">AC</button>
+                    <button type="button" data-action="backspace" aria-label="一文字消す">⌫</button>
+                    <button class="operator" type="button" data-operator="/" aria-label="割る">÷</button>
+                    <button class="operator" type="button" data-operator="*" aria-label="掛ける">×</button>
+
+                    <button type="button" data-digit="7">7</button>
+                    <button type="button" data-digit="8">8</button>
+                    <button type="button" data-digit="9">9</button>
+                    <button class="operator" type="button" data-operator="-" aria-label="引く">−</button>
+
+                    <button type="button" data-digit="4">4</button>
+                    <button type="button" data-digit="5">5</button>
+                    <button type="button" data-digit="6">6</button>
+                    <button class="operator" type="button" data-operator="+" aria-label="足す">+</button>
+
+                    <button type="button" data-digit="1">1</button>
+                    <button type="button" data-digit="2">2</button>
+                    <button type="button" data-digit="3">3</button>
+                    <button class="equals" type="button" data-action="equals">=</button>
+
+                    <button type="button" data-action="sign" aria-label="符号を反転">±</button>
+                    <button type="button" data-digit="0">0</button>
+                    <button type="button" data-action="decimal">.</button>
+                </div>
+            </section>
+
+            <aside class="history-panel" aria-labelledby="history-title">
+                <h2 id="history-title">計算履歴</h2>
+                <ol class="history-list" id="history" aria-live="polite">
+                    <li>まだ計算履歴はありません</li>
+                </ol>
+            </aside>
+        </div>
+
+        <a class="home-link" href="index.html">トップへ戻る</a>
+    </main>
+    <footer class="site-footer">storm</footer>
+
+    <script>
+        const display = document.getElementById('display');
+        const history = document.getElementById('history');
+        let storedValue = null;
+        let pendingOperator = null;
+        let startNewNumber = true;
+        let hasHistory = false;
+
+        function formatNumber(value) {
+            if (!Number.isFinite(value)) return 'エラー';
+            const rounded = Number.parseFloat(value.toPrecision(12));
+            return Object.is(rounded, -0) ? '0' : String(rounded);
+        }
+
+        function calculate(left, right, operator) {
+            switch (operator) {
+                case '+': return left + right;
+                case '-': return left - right;
+                case '*': return left * right;
+                case '/': return right === 0 ? NaN : left / right;
+                default: return right;
+            }
+        }
+
+        function enterDigit(digit) {
+            if (display.value === 'エラー' || startNewNumber) {
+                display.value = digit;
+                startNewNumber = false;
+            } else if (display.value.length < 16) {
+                display.value = display.value === '0' ? digit : display.value + digit;
+            }
+        }
+
+        function chooseOperator(operator) {
+            const current = Number(display.value);
+            if (pendingOperator && !startNewNumber) {
+                const result = calculate(storedValue, current, pendingOperator);
+                display.value = formatNumber(result);
+                storedValue = result;
+            } else {
+                storedValue = current;
+            }
+            pendingOperator = operator;
+            startNewNumber = true;
+        }
+
+        function showResult() {
+            if (!pendingOperator || startNewNumber) return;
+            const left = storedValue;
+            const right = Number(display.value);
+            const operator = pendingOperator;
+            const result = calculate(left, right, operator);
+            display.value = formatNumber(result);
+            addHistory(`${formatNumber(left)} ${operator} ${formatNumber(right)} = ${display.value}`);
+            storedValue = Number.isFinite(result) ? result : null;
+            pendingOperator = null;
+            startNewNumber = true;
+        }
+
+        function addHistory(entry) {
+            if (!hasHistory) {
+                history.replaceChildren();
+                hasHistory = true;
+            }
+            const item = document.createElement('li');
+            item.textContent = entry;
+            history.prepend(item);
+            while (history.children.length > 8) history.lastElementChild.remove();
+        }
+
+        function clearCalculator() {
+            display.value = '0';
+            storedValue = null;
+            pendingOperator = null;
+            startNewNumber = true;
+        }
+
+        function handleAction(action) {
+            if (action === 'clear') clearCalculator();
+            if (action === 'equals') showResult();
+            if (action === 'decimal' && display.value !== 'エラー') {
+                if (startNewNumber) {
+                    display.value = '0.';
+                    startNewNumber = false;
+                } else if (!display.value.includes('.')) {
+                    display.value += '.';
+                }
+            }
+            if (action === 'backspace' && !startNewNumber && display.value !== 'エラー') {
+                display.value = display.value.length > 1 ? display.value.slice(0, -1) : '0';
+                if (display.value === '-') display.value = '0';
+            }
+            if (action === 'sign' && display.value !== 'エラー') {
+                display.value = formatNumber(-Number(display.value));
+            }
+        }
+
+        document.querySelector('.calculator-keys').addEventListener('click', (event) => {
+            const button = event.target.closest('button');
+            if (!button) return;
+            if (button.dataset.digit !== undefined) enterDigit(button.dataset.digit);
+            if (button.dataset.operator) chooseOperator(button.dataset.operator);
+            if (button.dataset.action) handleAction(button.dataset.action);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (/^[0-9]$/.test(event.key)) enterDigit(event.key);
+            else if (['+', '-', '*', '/'].includes(event.key)) chooseOperator(event.key);
+            else if (event.key === '.' || event.key === ',') handleAction('decimal');
+            else if (event.key === 'Enter' || event.key === '=') {
+                event.preventDefault();
+                showResult();
+            } else if (event.key === 'Backspace') handleAction('backspace');
+            else if (event.key === 'Escape') clearCalculator();
+        });
+    </script>
+</body>
+</html>
