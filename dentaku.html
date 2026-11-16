@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>電卓 | storm</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="site-main">
+    <h1>電卓</h1>
+
+    <div class="calculator-layout">
+      <section class="calculator" aria-label="電卓">
+        <div id="display" class="calculator-display" aria-live="polite">0</div>
+
+        <div class="calculator-keys">
+          <button class="clear" type="button" data-action="clear">AC</button>
+          <button type="button" data-action="delete">⌫</button>
+          <button class="operator" type="button" data-value="/">÷</button>
+          <button class="operator" type="button" data-value="*">×</button>
+
+          <button type="button" data-digit="7">7</button>
+          <button type="button" data-digit="8">8</button>
+          <button type="button" data-digit="9">9</button>
+          <button class="operator" type="button" data-value="-">−</button>
+
+          <button type="button" data-digit="4">4</button>
+          <button type="button" data-digit="5">5</button>
+          <button type="button" data-digit="6">6</button>
+          <button class="operator" type="button" data-value="+">＋</button>
+
+          <button type="button" data-digit="1">1</button>
+          <button type="button" data-digit="2">2</button>
+          <button type="button" data-digit="3">3</button>
+          <button class="equals" type="button" data-action="equals">=</button>
+
+          <button type="button" data-action="sign">±</button>
+          <button type="button" data-digit="0">0</button>
+          <button type="button" data-action="decimal">.</button>
+        </div>
+      </section>
+
+      <aside class="history-panel" aria-label="計算履歴">
+        <h2>計算履歴</h2>
+        <ol id="history-list" class="history-list">
+          <li>まだ計算履歴はありません</li>
+        </ol>
+      </aside>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <a class="home-link" href="index.html">トップへ戻る</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">storm</footer>
+
+  <script>
+    const display = document.getElementById("display");
+    const historyList = document.getElementById("history-list");
+
+    let displayValue = "0";
+    let storedValue = null;
+    let currentOperator = null;
+    let waitingForSecondOperand = false;
+    let history = [];
+
+    function updateDisplay() {
+      display.textContent = displayValue;
+    }
+
+    function resetHistoryMessage() {
+      if (history.length === 0) {
+        historyList.innerHTML = "<li>まだ計算履歴はありません</li>";
+      }
+    }
+
+    function addHistory(entry) {
+      history.unshift(entry);
+      if (history.length > 8) {
+        history.pop();
+      }
+      historyList.innerHTML = "";
+      history.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        historyList.appendChild(li);
+      });
+      if (history.length === 0) {
+        resetHistoryMessage();
+      }
+    }
+
+    function inputDigit(digit) {
+      if (waitingForSecondOperand) {
+        displayValue = digit;
+        waitingForSecondOperand = false;
+      } else {
+        displayValue = displayValue === "0" ? digit : displayValue + digit;
+      }
+      updateDisplay();
+    }
+
+    function inputDecimal() {
+      if (waitingForSecondOperand) {
+        displayValue = "0.";
+        waitingForSecondOperand = false;
+        updateDisplay();
+        return;
+      }
+
+      if (!displayValue.includes(".")) {
+        displayValue += ".";
+        updateDisplay();
+      }
+    }
+
+    function deleteLast() {
+      if (waitingForSecondOperand) return;
+
+      if (displayValue.length <= 1) {
+        displayValue = "0";
+      } else {
+        displayValue = displayValue.slice(0, -1);
+      }
+      updateDisplay();
+    }
+
+    function toggleSign() {
+      const value = Number(displayValue);
+      displayValue = String(-value);
+      updateDisplay();
+    }
+
+    function performCalculation(first, second, operator) {
+      switch (operator) {
+        case "+":
+          return first + second;
+        case "-":
+          return first - second;
+        case "*":
+          return first * second;
+        case "/":
+          return second === 0 ? "エラー" : first / second;
+        default:
+          return second;
+      }
+    }
+
+    function handleOperator(nextOperator) {
+      const inputValue = Number(displayValue);
+
+      if (storedValue === null) {
+        storedValue = inputValue;
+      } else if (currentOperator) {
+        const result = performCalculation(storedValue, inputValue, currentOperator);
+
+        if (result === "エラー") {
+          displayValue = "エラー";
+          storedValue = null;
+          currentOperator = null;
+          waitingForSecondOperand = false;
+          updateDisplay();
+          return;
+        }
+
+        storedValue = result;
+        displayValue = String(result);
+        updateDisplay();
+      }
+
+      waitingForSecondOperand = true;
+      currentOperator = nextOperator;
+    }
+
+    function handleEquals() {
+      if (!currentOperator || storedValue === null) return;
+
+      const inputValue = Number(displayValue);
+      const result = performCalculation(storedValue, inputValue, currentOperator);
+
+      if (result === "エラー") {
+        displayValue = "エラー";
+        storedValue = null;
+        currentOperator = null;
+        waitingForSecondOperand = false;
+        updateDisplay();
+        return;
+      }
+
+      displayValue = String(result);
+      addHistory(`${storedValue} ${currentOperator} ${inputValue} = ${result}`);
+      storedValue = null;
+      currentOperator = null;
+      waitingForSecondOperand = false;
+      updateDisplay();
+    }
+
+    function clearAll() {
+      displayValue = "0";
+      storedValue = null;
+      currentOperator = null;
+      waitingForSecondOperand = false;
+      updateDisplay();
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+
+      if (!target.matches("button")) return;
+
+      if (target.dataset.digit) {
+        inputDigit(target.dataset.digit);
+        return;
+      }
+
+      if (target.dataset.value) {
+        handleOperator(target.dataset.value);
+        return;
+      }
+
+      if (target.dataset.action === "clear") {
+        clearAll();
+        return;
+      }
+
+      if (target.dataset.action === "delete") {
+        deleteLast();
+        return;
+      }
+
+      if (target.dataset.action === "equals") {
+        handleEquals();
+        return;
+      }
+
+      if (target.dataset.action === "decimal") {
+        inputDecimal();
+        return;
+      }
+
+      if (target.dataset.action === "sign") {
+        toggleSign();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (/^[0-9]$/.test(event.key)) {
+        inputDigit(event.key);
+        return;
+      }
+
+      if (["+", "-", "*", "/"].includes(event.key)) {
+        handleOperator(event.key);
+        return;
+      }
+
+      if (event.key === ".") {
+        inputDecimal();
+        return;
+      }
+
+      if (event.key === "Enter" || event.key === "=") {
+        handleEquals();
+        return;
+      }
+
+      if (event.key === "Backspace") {
+        deleteLast();
+      }
+
+      if (event.key === "Escape") {
+        clearAll();
+      }
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
