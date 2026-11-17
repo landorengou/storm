@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Current Time</title>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #111827;
+      --panel: rgba(17, 24, 39, 0.74);
+      --border: rgba(255,255,255,0.08);
+      --text: #edf2ff;
+      --muted: #b8c3d9;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(167,139,250,0.25), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(125,211,252,0.25), transparent 35%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      display: grid;
+      place-items: center;
+    }
+
+    .clock-card {
+      width: min(92vw, 620px);
+      padding: 30px 24px 26px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      text-align: center;
+    }
+
+    .label {
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .time {
+      font-size: clamp(3.2rem, 9vw, 7rem);
+      font-weight: 700;
+      letter-spacing: -0.06em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 18px rgba(125,211,252,0.35);
+    }
+
+    .date {
+      margin-top: 18px;
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timezone {
+      margin-top: 14px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin: 0 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 18px rgba(125,211,252,0.7);
+      animation: pulse 1.6s ease-in-out infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+  <div class="clock-card">
+    <div class="label"><span class="dot"></span> Current Time</div>
+    <div class="time" id="time">00:00:00</div>
+    <div class="date" id="date">2026/11/17</div>
+    <div class="timezone" id="timezone">Local Time</div>
+  </div>
+
+  <script>
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function updateClock() {
+      const now = new Date();
+
+      const timeEl = document.getElementById("time");
+      const dateEl = document.getElementById("date");
+      const timezoneEl = document.getElementById("timezone");
+
+      const h = pad(now.getHours());
+      const m = pad(now.getMinutes());
+      const s = pad(now.getSeconds());
+
+      const y = now.getFullYear();
+      const month = pad(now.getMonth() + 1);
+      const d = pad(now.getDate());
+      const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
+      const day = dayNames[now.getDay()];
+
+      timeEl.textContent = `${h}:${m}:${s}`;
+      dateEl.textContent = `${y}/${month}/${d} (${day})`;
+      timezoneEl.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+</html>
