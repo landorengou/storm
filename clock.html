@@ -1,15 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Current Time</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>現在の時刻</title>
   <style>
     :root {
-      --bg1: #0f172a;
-      --bg2: #111827;
-      --panel: rgba(17, 24, 39, 0.74);
-      --border: rgba(255,255,255,0.08);
+      color-scheme: dark;
       --text: #edf2ff;
       --muted: #b8c3d9;
       --accent: #7dd3fc;
@@ -18,115 +15,171 @@
 
     * { box-sizing: border-box; }
 
-    html, body {
+    body {
+      min-height: 100vh;
       margin: 0;
-      height: 100%;
-      font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at top, rgba(167,139,250,0.25), transparent 30%),
-        radial-gradient(circle at bottom right, rgba(125,211,252,0.25), transparent 35%),
-        linear-gradient(135deg, var(--bg1), var(--bg2));
+      padding: 20px;
       display: grid;
       place-items: center;
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, #a78bfa40, transparent 32%),
+        radial-gradient(circle at bottom right, #7dd3fc40, transparent 35%),
+        linear-gradient(135deg, #0f172a, #111827);
     }
 
     .clock-card {
-      width: min(92vw, 620px);
-      padding: 30px 24px 26px;
-      border: 1px solid var(--border);
+      width: min(100%, 620px);
+      padding: 32px 24px;
+      border: 1px solid #ffffff18;
       border-radius: 28px;
-      background: rgba(15, 23, 42, 0.72);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+      background: #0f172ab8;
+      box-shadow: 0 30px 80px #0007;
       text-align: center;
+      backdrop-filter: blur(14px);
     }
 
     .label {
+      margin-bottom: 20px;
+      color: var(--muted);
+      font-size: .78rem;
       letter-spacing: .2em;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      color: var(--muted);
-      margin-bottom: 18px;
-    }
-
-    .time {
-      font-size: clamp(3.2rem, 9vw, 7rem);
-      font-weight: 700;
-      letter-spacing: -0.06em;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 18px rgba(125,211,252,0.35);
-    }
-
-    .date {
-      margin-top: 18px;
-      font-size: clamp(1rem, 2vw, 1.4rem);
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .timezone {
-      margin-top: 14px;
-      font-size: 0.82rem;
-      color: rgba(255,255,255,0.7);
-      letter-spacing: 0.12em;
       text-transform: uppercase;
     }
 
     .dot {
       display: inline-block;
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
+      margin-right: 10px;
       border-radius: 50%;
-      margin: 0 8px;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 18px rgba(125,211,252,0.7);
+      box-shadow: 0 0 18px #7dd3fcaa;
       animation: pulse 1.6s ease-in-out infinite;
-      vertical-align: middle;
+    }
+
+    .time {
+      font-size: clamp(3.2rem, 11vw, 7rem);
+      font-weight: 700;
+      letter-spacing: -.06em;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 18px #7dd3fc59;
+    }
+
+    .date {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: clamp(1rem, 3vw, 1.35rem);
+      letter-spacing: .06em;
+    }
+
+    .timezone {
+      margin-top: 12px;
+      color: #ffffffb3;
+      font-size: .82rem;
+    }
+
+    .format-switch {
+      display: inline-flex;
+      gap: 5px;
+      margin-top: 26px;
+      padding: 5px;
+      border: 1px solid #ffffff1a;
+      border-radius: 12px;
+      background: #080d18a8;
+    }
+
+    .format-switch button {
+      padding: 9px 14px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .format-switch button[aria-pressed="true"] {
+      background: #7c6cf0;
+      color: white;
+    }
+
+    .format-switch button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
     }
 
     @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: .7; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="clock-card">
-    <div class="label"><span class="dot"></span> Current Time</div>
-    <div class="time" id="time">00:00:00</div>
-    <div class="date" id="date">2026/11/17</div>
-    <div class="timezone" id="timezone">Local Time</div>
-  </div>
+  <main class="clock-card">
+    <div class="label"><span class="dot" aria-hidden="true"></span>現在の時刻</div>
+    <div class="time" id="time" aria-live="off">--:--:--</div>
+    <div class="date" id="date">----</div>
+    <div class="timezone" id="timezone"></div>
+
+    <div class="format-switch" role="group" aria-label="時刻の表示形式">
+      <button type="button" id="format24" aria-pressed="true">24時間</button>
+      <button type="button" id="format12" aria-pressed="false">12時間</button>
+    </div>
+  </main>
 
   <script>
-    function pad(value) {
-      return String(value).padStart(2, "0");
-    }
+    const timeElement = document.querySelector("#time");
+    const dateElement = document.querySelector("#date");
+    const timezoneElement = document.querySelector("#timezone");
+    const button24 = document.querySelector("#format24");
+    const button12 = document.querySelector("#format12");
+
+    let use24Hour = localStorage.getItem("clock-format") !== "12";
 
     function updateClock() {
       const now = new Date();
 
-      const timeEl = document.getElementById("time");
-      const dateEl = document.getElementById("date");
-      const timezoneEl = document.getElementById("timezone");
+      timeElement.textContent = new Intl.DateTimeFormat("ja-JP", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: !use24Hour
+      }).format(now);
 
-      const h = pad(now.getHours());
-      const m = pad(now.getMinutes());
-      const s = pad(now.getSeconds());
+      dateElement.textContent = new Intl.DateTimeFormat("ja-JP", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      }).format(now);
 
-      const y = now.getFullYear();
-      const month = pad(now.getMonth() + 1);
-      const d = pad(now.getDate());
-      const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
-      const day = dayNames[now.getDay()];
+      timezoneElement.textContent =
+        Intl.DateTimeFormat().resolvedOptions().timeZone || "ローカル時間";
 
-      timeEl.textContent = `${h}:${m}:${s}`;
-      dateEl.textContent = `${y}/${month}/${d} (${day})`;
-      timezoneEl.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
+      button24.setAttribute("aria-pressed", String(use24Hour));
+      button12.setAttribute("aria-pressed", String(!use24Hour));
     }
+
+    button24.addEventListener("click", () => {
+      use24Hour = true;
+      localStorage.setItem("clock-format", "24");
+      updateClock();
+    });
+
+    button12.addEventListener("click", () => {
+      use24Hour = false;
+      localStorage.setItem("clock-format", "12");
+      updateClock();
+    });
 
     updateClock();
     setInterval(updateClock, 1000);
