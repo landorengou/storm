@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>簡易HTMLビューアー</title>
+</head>
+<body>
+    <h2>外部サイトのデータを取得して表示</h2>
+    <input type="text" id="targetUrl" placeholder="https://example.com" style="width: 300px;">
+    <button onclick="fetchData()">取得する</button>
+    
+    <!-- 取得したHTMLを表示する場所 -->
+    <div id="content" style="margin-top: 20px; border: 1px solid #ccc; padding: 10px;"></div>
+
+    <script>
+        // ここにJavaScriptを書く
+        function fetchData() {
+            const url = document.getElementById('targetUrl').value;
+            if (!url) return;
+
+            document.getElementById('content').innerText = "読み込み中...";
+
+            // CORS制限を回避するための無料中継サービス（CORS Proxy）経由で取得
+            const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+
+            fetch(proxyUrl)
+                .then(response => response.json())
+                .then(data => {
+                    // 取得したHTML文字列をそのまま画面内のdivに流し込む
+                    document.getElementById('content').innerHTML = data.contents;
+                })
+                .catch(error => {
+                    document.getElementById('content').innerText = "エラーが発生しました: " + error;
+                });
+        }
+    </script>
+</body>
+</html>
