@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>カスタムルーレット</title>
+    <title>カスタムルーレット（重み付け・プリセット対応）</title>
     <style>
         :root {
             --primary: #4f46e5;
@@ -28,7 +28,7 @@
 
         .container {
             background: var(--card-bg);
-            padding: 30px;
+            padding: 25px;
             border-radius: 16px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             width: 100%;
@@ -39,27 +39,49 @@
 
         h1 {
             margin-top: 0;
-            font-size: 24px;
+            font-size: 22px;
             color: var(--primary);
+        }
+
+        .preset-section {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        select, input[type="text"], input[type="number"] {
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--primary);
         }
 
         .roulette-wrapper {
             position: relative;
-            width: 300px;
-            height: 300px;
-            margin: 20px auto;
+            width: 260px;
+            height: 260px;
+            margin: 15px auto;
         }
 
         .pointer {
             position: absolute;
-            top: -15px;
+            top: -12px;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 12px solid transparent;
-            border-right: 12px solid transparent;
-            border-top: 24px solid #ef4444;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid #ef4444;
             z-index: 10;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
         }
@@ -75,13 +97,12 @@
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 10px 20px;
+            font-size: 15px;
             font-weight: bold;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: background 0.2s, transform 0.1s;
-            box-shadow: 0 2px 5px rgba(79, 70, 229, 0.3);
         }
 
         button:hover {
@@ -95,42 +116,29 @@
         button:disabled {
             background-color: #cbd5e1;
             cursor: not-allowed;
-            box-shadow: none;
         }
 
-        .input-section {
-            margin-top: 25px;
+        .control-section {
+            margin-top: 20px;
             text-align: left;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
         }
 
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             margin-bottom: 10px;
         }
 
-        input[type="text"] {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--primary);
-        }
-
         .item-list {
-            max-height: 150px;
+            max-height: 140px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px;
+            border-radius: 6px;
+            padding: 6px;
             list-style: none;
-            margin: 0 0 15px 0;
+            margin: 0 0 10px 0;
             background: #fbfcfe;
         }
 
@@ -138,9 +146,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 10px;
+            padding: 5px 8px;
             border-bottom: 1px solid #f1f5f9;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .item-list li:last-child {
@@ -152,20 +160,18 @@
             border: none;
             color: #ef4444;
             cursor: pointer;
-            font-size: 16px;
-            padding: 0 4px;
-            box-shadow: none;
+            font-size: 14px;
+            padding: 0;
         }
         .delete-btn:hover {
-            background: none;
             color: #dc2626;
         }
 
         #result {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
-            margin: 15px 0;
-            min-height: 30px;
+            margin: 10px 0;
+            min-height: 25px;
             color: #0f172a;
         }
     </style>
@@ -175,22 +181,31 @@
 <div class="container">
     <h1>カスタムルーレット</h1>
     
+    <!-- プリセット選択エリア -->
+    <div class="preset-section">
+        <label style="font-size: 13px; font-weight: bold;">リスト切替:</label>
+        <select id="presetSelect" onchange="switchPreset()"></select>
+        <button onclick="addNewPreset()" style="padding: 6px 10px; font-size: 12px; background-color: #10b981;">＋新規作成</button>
+        <button onclick="deleteCurrentPreset()" style="padding: 6px 8px; font-size: 12px; background-color: #ef4444;" title="現在のリストを削除">🗑️</button>
+    </div>
+
     <div class="roulette-wrapper">
         <div class="pointer"></div>
         <canvas id="rouletteCanvas" width="400" height="400"></canvas>
     </div>
 
     <div id="result"></div>
-    <button id="spinBtn" onclick="spinRoulette()">まわす！</button>
+    <button id="spinBtn" onclick="spinRoulette()" style="width: 100%; padding: 12px;">まわす！</button>
 
-    <div class="input-section">
-        <label style="font-size: 14px; font-weight: bold; display: block; margin-bottom: 5px;">項目を追加・編集</label>
+    <!-- 項目追加エリア -->
+    <div class="control-section">
+        <label style="font-size: 13px; font-weight: bold; display: block; margin-bottom: 5px;">項目と重み（確率）の追加</label>
         <div class="input-group">
-            <input type="text" id="itemInput" placeholder="例: ラーメン、カレー、寿司..." onkeypress="handleKeyPress(event)">
-            <button onclick="addItem()" style="padding: 10px 16px; font-size: 14px;">追加</button>
+            <input type="text" id="itemNameInput" placeholder="項目名 (例: 大吉)" style="flex: 2;">
+            <input type="number" id="itemWeightInput" value="1" min="1" max="100" title="重み(大きいほど出やすい)" style="flex: 1;" placeholder="重み">
+            <button onclick="addItem()" style="padding: 8px 14px; font-size: 13px;">追加</button>
         </div>
         <ul id="itemList" class="item-list"></ul>
-        <button onclick="resetDefault()" style="background-color: #64748b; font-size: 13px; padding: 6px 12px; width: 100%;">初期に戻す</button>
     </div>
 </div>
 
@@ -199,71 +214,143 @@
     const ctx = canvas.getContext('2d');
     const spinBtn = document.getElementById('spinBtn');
     const resultDiv = document.getElementById('result');
-    const itemInput = document.getElementById('itemInput');
+    const itemNameInput = document.getElementById('itemNameInput');
+    const itemWeightInput = document.getElementById('itemWeightInput');
     const itemListEl = document.getElementById('itemList');
+    const presetSelect = document.getElementById('presetSelect');
 
-    // デフォルトの項目
-    const defaultItems = ['寿司', '焼肉', 'ラーメン', 'カレー', 'オムライス', 'うどん'];
-    let items = [];
-
-    // カラーパレット
     const colors = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#14b8a6', '#f43f5e'];
 
-    let currentAngle = 0; // 現在の回転角
+    // 初期データ構造
+    let presets = {
+        "今日のランチ": [
+            { name: "寿司", weight: 1 },
+            { name: "焼肉", weight: 1 },
+            { name: "ラーメン", weight: 2 },
+            { name: "カレー", weight: 1 }
+        ],
+        "おみくじ": [
+            { name: "大吉", weight: 1 },
+            { name: "中吉", weight: 3 },
+            { name: "小吉", weight: 5 },
+            { name: "凶", weight: 2 }
+        ]
+    };
+
+    let currentPresetKey = "今日のランチ";
+    let currentAngle = 0;
     let isSpinning = false;
 
-    // ローカルストレージから読み込み
-    function loadItems() {
-        const saved = localStorage.getItem('custom_roulette_items');
+    // ローカルストレージからの読み込み
+    function loadData() {
+        const saved = localStorage.getItem('roulette_presets_v2');
         if (saved) {
             try {
-                items = JSON.parse(saved);
+                presets = JSON.parse(saved);
             } catch (e) {
-                items = [...defaultItems];
+                // エラー時はデフォルトを使用
             }
-        } else {
-            items = [...defaultItems];
         }
-        if (items.length === 0) {
-            items = ['項目なし'];
+        if (!presets[currentPresetKey]) {
+            currentPresetKey = Object.keys(presets)[0] || "デフォルト";
         }
+        updatePresetDropdown();
         updateUI();
     }
 
-    // ローカルストレージに保存
-    function saveItems() {
-        localStorage.setItem('custom_roulette_items', JSON.stringify(items));
+    // ローカルストレージへの保存
+    function saveData() {
+        localStorage.setItem('roulette_presets_v2', JSON.stringify(presets));
     }
 
-    // 画面の更新（リスト描画とルーレット描画）
+    // プリセットのドロップダウン更新
+    function updatePresetDropdown() {
+        presetSelect.innerHTML = '';
+        Object.keys(presets).forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = key;
+            if (key === currentPresetKey) option.selected = true;
+            presetSelect.appendChild(option);
+        });
+    }
+
+    // プリセット切り替え
+    function switchPreset() {
+        if (isSpinning) return;
+        currentPresetKey = presetSelect.value;
+        currentAngle = 0;
+        resultDiv.textContent = '';
+        updateUI();
+    }
+
+    // 新規プリセット追加
+    function addNewPreset() {
+        const name = prompt("新しいリストの名前を入力してください:", "カスタムリスト");
+        if (!name) return;
+        if (presets[name]) {
+            alert("同名のリストが既に存在します。");
+            return;
+        }
+        presets[name] = [{ name: "項目1", weight: 1 }];
+        currentPresetKey = name;
+        saveData();
+        updatePresetDropdown();
+        updateUI();
+        resultDiv.textContent = '';
+    }
+
+    // 現在のプリセット削除
+    function deleteCurrentPreset() {
+        const keys = Object.keys(presets);
+        if (keys.length <= 1) {
+            alert("最後のリストは削除できません。");
+            return;
+        }
+        if (confirm(`リスト「${currentPresetKey}」を削除しますか？`)) {
+            delete presets[currentPresetKey];
+            currentPresetKey = Object.keys(presets)[0];
+            saveData();
+            updatePresetDropdown();
+            updateUI();
+            resultDiv.textContent = '';
+        }
+    }
+
+    // 画面更新
     function updateUI() {
-        // リスト描画
+        const items = presets[currentPresetKey] || [];
         itemListEl.innerHTML = '';
         items.forEach((item, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `<span>${escapeHtml(item)}</span> <button class="delete-btn" onclick="removeItem(${index})">&times;</button>`;
+            li.innerHTML = `<span><b>${escapeHtml(item.name)}</b> (重み: ${item.weight})</span> <button class="delete-btn" onclick="removeItem(${index})">&times;</button>`;
             itemListEl.appendChild(li);
         });
         drawRoulette();
     }
 
-    // ルーレットを描画
+    // ルーレット描画（重みに応じて扇形の大きさを変更）
     function drawRoulette() {
-        const total = items.length;
-        const arc = (2 * Math.PI) / total;
+        const items = presets[currentPresetKey] || [];
+        if (items.length === 0) return;
+
+        const totalWeight = items.reduce((sum, item) => sum + Number(item.weight), 0);
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         const radius = canvas.width / 2 - 10;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        for (let i = 0; i < total; i++) {
-            const angle = currentAngle + i * arc;
-            
-            // セクター（扇形）の描画
+        let accumulatedAngle = currentAngle;
+
+        items.forEach((item, i) => {
+            const weight = Number(item.weight) || 1;
+            const sliceAngle = (weight / totalWeight) * 2 * Math.PI;
+
+            // 扇形描画
             ctx.beginPath();
             ctx.moveTo(centerX, centerY);
-            ctx.arc(centerX, centerY, radius, angle, angle + arc);
+            ctx.arc(centerX, centerY, radius, accumulatedAngle, accumulatedAngle + sliceAngle);
             ctx.closePath();
             ctx.fillStyle = colors[i % colors.length];
             ctx.fill();
@@ -271,83 +358,81 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // テキストの描画
+            // テキスト描画
             ctx.save();
             ctx.translate(centerX, centerY);
-            ctx.rotate(angle + arc / 2);
+            ctx.rotate(accumulatedAngle + sliceAngle / 2);
             ctx.textAlign = 'right';
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 18px sans-serif';
-            ctx.fillText(items[i], radius - 20, 6);
+            ctx.font = 'bold 16px sans-serif';
+            // 文字が長すぎる場合は省略
+            let displayName = item.name;
+            if (displayName.length > 6) displayName = displayName.substring(0, 5) + '…';
+            ctx.fillText(displayName, radius - 20, 6);
             ctx.restore();
-        }
+
+            accumulatedAngle += sliceAngle;
+        });
     }
 
     // 項目追加
     function addItem() {
-        const text = itemInput.value.trim();
-        if (!text) return;
-        items.push(text);
-        itemInput.value = '';
-        saveItems();
+        const name = itemNameInput.value.trim();
+        const weight = parseInt(itemWeightInput.value) || 1;
+        if (!name) {
+            alert("項目名を入力してください。");
+            return;
+        }
+
+        if (!presets[currentPresetKey]) {
+            presets[currentPresetKey] = [];
+        }
+
+        presets[currentPresetKey].push({ name, weight });
+        itemNameInput.value = '';
+        itemWeightInput.value = '1';
+        saveData();
         updateUI();
         resultDiv.textContent = '';
     }
 
-    function handleKeyPress(e) {
-        if (e.key === 'Enter') {
-            addItem();
-        }
-    }
-
     // 項目削除
     function removeItem(index) {
+        const items = presets[currentPresetKey];
         if (items.length <= 1) {
             alert('最低1つの項目が必要です。');
             return;
         }
         items.splice(index, 1);
-        saveItems();
+        saveData();
         updateUI();
         resultDiv.textContent = '';
-    }
-
-    // 初期化
-    function resetDefault() {
-        if (confirm('初期の項目に戻しますか？')) {
-            items = [...defaultItems];
-            saveItems();
-            updateUI();
-            resultDiv.textContent = '';
-        }
     }
 
     // ルーレットを回すアニメーション
     function spinRoulette() {
         if (isSpinning) return;
-        if (items.length === 0) return;
+        const items = presets[currentPresetKey];
+        if (!items || items.length === 0) return;
 
         isSpinning = true;
         spinBtn.disabled = true;
         resultDiv.textContent = 'まわってます...';
 
-        const total = items.length;
-        const arc = (2 * Math.PI) / total;
-
-        // ランダムな回転数（5〜8回転）＋ランダムなオフセット
+        const totalWeight = items.reduce((sum, item) => sum + Number(item.weight), 0);
+        
+        // ランダムな回転数（5〜8回転）＋ランダムな角度
         const extraRotations = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
         const randomAngle = Math.random() * 2 * Math.PI;
         const targetAngle = currentAngle + extraRotations + randomAngle;
 
-        const duration = 3000; // 3秒
+        const duration = 3000;
         const startTime = performance.now();
         const startAngle = currentAngle;
 
         function animate(currentTime) {
             const elapsed = currentTime - startTime;
             const progress = Math.min(elapsed / duration, 1);
-
-            // イージング関数（だんだん減速する）
             const easeOut = 1 - Math.pow(1 - progress, 3);
 
             currentAngle = startAngle + (targetAngle - startAngle) * easeOut;
@@ -359,14 +444,23 @@
                 isSpinning = false;
                 spinBtn.disabled = false;
 
-                // 停止位置の計算（真上がポインターなので調整）
-                // 正規化 (0〜2π)
+                // 停止位置から当たりの項目を逆算
                 const normalizedAngle = (2 * Math.PI - (currentAngle % (2 * Math.PI))) % (2 * Math.PI);
-                // ポインターの位置（真上 = -PI/2 または 270度方向）に合わせた計算
                 const pointerOffset = (1.5 * Math.PI) % (2 * Math.PI);
-                const winningIndex = Math.floor(((normalizedAngle + pointerOffset) % (2 * Math.PI)) / arc) % total;
+                const targetCheckAngle = (normalizedAngle + pointerOffset) % (2 * Math.PI);
 
-                resultDiv.textContent = `結果: ${items[winningIndex]} 🎉`;
+                let currentAcc = 0;
+                let winningIndex = 0;
+                for (let i = 0; i < items.length; i++) {
+                    const sliceAngle = (Number(items[i].weight) / totalWeight) * 2 * Math.PI;
+                    if (targetCheckAngle >= currentAcc && targetCheckAngle < currentAcc + sliceAngle) {
+                        winningIndex = i;
+                        break;
+                    }
+                    currentAcc += sliceAngle;
+                }
+
+                resultDiv.textContent = `結果: ${items[winningIndex].name} 🎉`;
             }
         }
 
@@ -379,8 +473,7 @@
         );
     }
 
-    // 初回ロード
-    loadItems();
+    loadData();
 </script>
 
 </body>
