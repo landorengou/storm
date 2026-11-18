@@ -83,18 +83,16 @@
       background: #070d19aa;
     }
 
-    .tabs button,
-    .action-button,
-    .preset,
-    .theme-button {
-      border: 0;
+    button, input { font: inherit; }
+
+    button {
       color: var(--text);
-      font: inherit;
       cursor: pointer;
     }
 
     .tabs button {
       padding: 11px 5px;
+      border: 0;
       border-radius: 10px;
       background: transparent;
       color: var(--muted);
@@ -142,10 +140,13 @@
       dominant-baseline: central;
     }
 
- .hand {
-  stroke-linecap: round;
-  transform-origin: 100px 100px;
-}
+    /* SVGのrotate角度はJavaScript側で指定 */
+    .hand { stroke-linecap: round; }
+    .hour-hand { stroke: #f4f6fb; stroke-width: 5; }
+    .minute-hand { stroke: var(--accent); stroke-width: 3.2; }
+    .second-hand { stroke: #f9a8d4; stroke-width: 1.5; }
+    .center-cap { fill: #f9a8d4; }
+
     .digital-time,
     .stopwatch-display,
     .timer-display {
@@ -163,10 +164,11 @@
       text-align: center;
     }
 
-    .format-switch {
+    .format-switch,
+    .theme-switch {
       display: flex;
       justify-content: center;
-      gap: 5px;
+      gap: 8px;
       margin-top: 18px;
     }
 
@@ -176,7 +178,6 @@
       border-radius: 9px;
       background: #070d19aa;
       color: var(--muted);
-      font: inherit;
     }
 
     .format-switch button[aria-pressed="true"] {
@@ -184,16 +185,12 @@
       color: white;
     }
 
-    .theme-switch {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 16px;
-    }
+    .theme-switch { gap: 12px; }
 
     .theme-button {
       width: 32px;
       height: 32px;
+      padding: 0;
       border: 3px solid #ffffff55;
       border-radius: 50%;
     }
@@ -238,17 +235,16 @@
       background: #070d19;
       color: white;
       text-align: center;
-      font: inherit;
       font-size: 1.35rem;
     }
 
     .colon { padding-bottom: 10px; }
 
     .presets,
-    .actions,
-    .laps {
+    .actions {
       display: flex;
       justify-content: center;
+      flex-wrap: wrap;
       gap: 8px;
       margin-top: 16px;
     }
@@ -266,10 +262,16 @@
       background: #7c6cf0;
     }
 
+    .action-button:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+    }
+
     .laps {
       max-height: 180px;
       overflow: auto;
       display: block;
+      margin-top: 16px;
       border-top: 1px solid #ffffff18;
     }
 
@@ -292,48 +294,51 @@
       .tabs button { font-size: .82rem; }
       .timer-inputs input { width: 72px; }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
   </style>
 </head>
 <body data-theme="blue">
-  <div class="orb orb-one"></div>
-  <div class="orb orb-two"></div>
+  <div class="orb orb-one" aria-hidden="true"></div>
+  <div class="orb orb-two" aria-hidden="true"></div>
 
   <main class="app">
     <section class="card">
-      <div class="tabs" role="tablist">
-        <button role="tab" aria-selected="true" data-view="clock">時計</button>
-        <button role="tab" aria-selected="false" data-view="timer">タイマー</button>
-        <button role="tab" aria-selected="false" data-view="stopwatch">ストップウォッチ</button>
+      <div class="tabs" role="tablist" aria-label="時計ツール">
+        <button type="button" role="tab" aria-selected="true" data-view="clock">時計</button>
+        <button type="button" role="tab" aria-selected="false" data-view="timer">タイマー</button>
+        <button type="button" role="tab" aria-selected="false" data-view="stopwatch">ストップウォッチ</button>
       </div>
 
       <section class="view" id="clock-view">
-        <svg class="clock" viewBox="0 0 200 200" aria-label="アナログ時計">
-          <circle class="face" cx="100" cy="100" r="95"/>
+        <svg class="clock" viewBox="0 0 200 200" role="img" aria-label="アナログ時計">
+          <circle class="face" cx="100" cy="100" r="95"></circle>
           <g id="ticks"></g>
           <g id="numbers"></g>
-<line id="hour-hand" class="hand hour-hand"
-      x1="100" y1="100" x2="100" y2="58"></line>
-<line id="minute-hand" class="hand minute-hand"
-      x1="100" y1="100" x2="100" y2="33"></line>
-<line id="second-hand" class="hand second-hand"
-      x1="100" y1="100" x2="100" y2="25"></line>
-<circle cx="100" cy="100" r="4" fill="#f9a8d4"></circle>
-          <circle class="center-cap" cx="100" cy="100" r="4"/>
+          <line id="hour-hand" class="hand hour-hand" x1="100" y1="100" x2="100" y2="58"></line>
+          <line id="minute-hand" class="hand minute-hand" x1="100" y1="100" x2="100" y2="33"></line>
+          <line id="second-hand" class="hand second-hand" x1="100" y1="100" x2="100" y2="25"></line>
+          <circle class="center-cap" cx="100" cy="100" r="4"></circle>
         </svg>
 
         <div class="digital-time" id="digital-time">--:--:--</div>
         <div class="date" id="date"></div>
         <div class="timezone" id="timezone"></div>
 
-        <div class="format-switch">
-          <button id="format24" aria-pressed="true">24時間</button>
-          <button id="format12" aria-pressed="false">12時間</button>
+        <div class="format-switch" role="group" aria-label="時刻の表示形式">
+          <button type="button" id="format24" aria-pressed="true">24時間</button>
+          <button type="button" id="format12" aria-pressed="false">12時間</button>
         </div>
 
-        <div class="theme-switch" aria-label="テーマ">
-          <button class="theme-button" data-theme="blue" aria-pressed="true" aria-label="青"></button>
-          <button class="theme-button" data-theme="orange" aria-pressed="false" aria-label="オレンジ"></button>
-          <button class="theme-button" data-theme="purple" aria-pressed="false" aria-label="紫"></button>
+        <div class="theme-switch" role="group" aria-label="テーマ">
+          <button type="button" class="theme-button" data-theme="blue" aria-pressed="true" aria-label="青"></button>
+          <button type="button" class="theme-button" data-theme="orange" aria-pressed="false" aria-label="オレンジ"></button>
+          <button type="button" class="theme-button" data-theme="purple" aria-pressed="false" aria-label="紫"></button>
         </div>
       </section>
 
@@ -350,48 +355,49 @@
           </div>
         </div>
 
-        <div class="presets">
-          <button class="preset" data-seconds="60">1分</button>
-          <button class="preset" data-seconds="300">5分</button>
-          <button class="preset" data-seconds="600">10分</button>
-          <button class="preset" data-seconds="1500">25分</button>
+        <div class="presets" aria-label="タイマーのプリセット">
+          <button type="button" class="preset" data-seconds="60">1分</button>
+          <button type="button" class="preset" data-seconds="300">5分</button>
+          <button type="button" class="preset" data-seconds="600">10分</button>
+          <button type="button" class="preset" data-seconds="1500">25分</button>
         </div>
 
         <div class="timer-display" id="timer-display">05:00</div>
         <div class="actions">
-          <button class="action-button primary" id="timer-start">スタート</button>
-          <button class="action-button" id="timer-reset">リセット</button>
+          <button type="button" class="action-button primary" id="timer-start">スタート</button>
+          <button type="button" class="action-button" id="timer-reset">リセット</button>
         </div>
+        <p class="date" id="timer-status" aria-live="polite"></p>
       </section>
 
       <section class="view" id="stopwatch-view" hidden>
         <div class="stopwatch-display" id="stopwatch-display">00:00.00</div>
         <div class="actions">
-          <button class="action-button primary" id="stopwatch-start">スタート</button>
-          <button class="action-button" id="lap-button" disabled>ラップ</button>
-          <button class="action-button" id="stopwatch-reset">リセット</button>
+          <button type="button" class="action-button primary" id="stopwatch-start">スタート</button>
+          <button type="button" class="action-button" id="lap-button" disabled>ラップ</button>
+          <button type="button" class="action-button" id="stopwatch-reset">リセット</button>
         </div>
-        <div class="laps" id="laps"></div>
+        <div class="laps" id="laps" aria-label="ラップ記録"></div>
       </section>
     </section>
   </main>
 
   <script>
-    const svgNS = "http://www.w3.org/2000/svg";
-
     // タブ切り替え
     document.querySelectorAll(".tabs button").forEach((button) => {
       button.addEventListener("click", () => {
-        document.querySelectorAll(".tabs button").forEach((tab) =>
-          tab.setAttribute("aria-selected", String(tab === button))
-        );
+        document.querySelectorAll(".tabs button").forEach((tab) => {
+          tab.setAttribute("aria-selected", String(tab === button));
+        });
+
         document.querySelectorAll(".view").forEach((view) => {
           view.hidden = view.id !== `${button.dataset.view}-view`;
         });
       });
     });
 
-    // アナログ時計
+    // アナログ時計の目盛りと数字
+    const svgNS = "http://www.w3.org/2000/svg";
     const ticks = document.querySelector("#ticks");
     const numbers = document.querySelector("#numbers");
 
@@ -416,36 +422,59 @@
       numbers.appendChild(text);
     }
 
+    // 時計表示
     let use24Hour = localStorage.getItem("clock-format") !== "12";
 
+    function setFormatButtons() {
+      document.querySelector("#format24")
+        .setAttribute("aria-pressed", String(use24Hour));
+      document.querySelector("#format12")
+        .setAttribute("aria-pressed", String(!use24Hour));
+    }
+
     function updateClock() {
-  const now = new Date();
-  const hours = now.getHours();
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-  const milliseconds = now.getMilliseconds();
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+      const milliseconds = now.getMilliseconds();
 
-  const hourAngle =
-    (hours % 12 + minutes / 60 + seconds / 3600) * 30;
+      const hourAngle = (hours % 12 + minutes / 60 + seconds / 3600) * 30;
+      const minuteAngle = (minutes + seconds / 60) * 6;
+      const secondAngle = (seconds + milliseconds / 1000) * 6;
 
-  const minuteAngle =
-    (minutes + seconds / 60) * 6;
+      document.querySelector("#hour-hand")
+        .setAttribute("transform", `rotate(${hourAngle} 100 100)`);
+      document.querySelector("#minute-hand")
+        .setAttribute("transform", `rotate(${minuteAngle} 100 100)`);
+      document.querySelector("#second-hand")
+        .setAttribute("transform", `rotate(${secondAngle} 100 100)`);
 
-  const secondAngle =
-    (seconds + milliseconds / 1000) * 6;
+      document.querySelector("#digital-time").textContent =
+        new Intl.DateTimeFormat("ja-JP", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: !use24Hour
+        }).format(now);
 
-  document.getElementById("hour-hand")
-    .setAttribute("transform", `rotate(${hourAngle} 100 100)`);
+      document.querySelector("#date").textContent =
+        new Intl.DateTimeFormat("ja-JP", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          weekday: "long"
+        }).format(now);
 
-  document.getElementById("minute-hand")
-    .setAttribute("transform", `rotate(${minuteAngle} 100 100)`);
+      document.querySelector("#timezone").textContent =
+        Intl.DateTimeFormat().resolvedOptions().timeZone || "ローカル時間";
+    }
 
-  document.getElementById("second-hand")
-    .setAttribute("transform", `rotate(${secondAngle} 100 100)`);
-}
-
-updateClock();
-setInterval(updateClock, 50);
+    document.querySelector("#format24").addEventListener("click", () => {
+      use24Hour = true;
+      localStorage.setItem("clock-format", "24");
+      setFormatButtons();
+      updateClock();
     });
 
     document.querySelector("#format12").addEventListener("click", () => {
@@ -455,41 +484,37 @@ setInterval(updateClock, 50);
       updateClock();
     });
 
-    function setFormatButtons() {
-      document.querySelector("#format24").setAttribute("aria-pressed", use24Hour);
-      document.querySelector("#format12").setAttribute("aria-pressed", !use24Hour);
-    }
-
     setFormatButtons();
     updateClock();
     setInterval(updateClock, 50);
 
-    // テーマ
+    // テーマ切り替え
     const themeButtons = document.querySelectorAll(".theme-button");
     const savedTheme = localStorage.getItem("clock-theme") || "blue";
 
     function applyTheme(theme) {
       document.body.dataset.theme = theme;
-      themeButtons.forEach((button) =>
-        button.setAttribute("aria-pressed", String(button.dataset.theme === theme))
-      );
+      themeButtons.forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.theme === theme));
+      });
       localStorage.setItem("clock-theme", theme);
     }
 
-    themeButtons.forEach((button) =>
-      button.addEventListener("click", () => applyTheme(button.dataset.theme))
-    );
+    themeButtons.forEach((button) => {
+      button.addEventListener("click", () => applyTheme(button.dataset.theme));
+    });
     applyTheme(savedTheme);
 
     // タイマー
     const timerMinutes = document.querySelector("#timer-minutes");
     const timerSeconds = document.querySelector("#timer-seconds");
     const timerDisplay = document.querySelector("#timer-display");
+    const timerStatus = document.querySelector("#timer-status");
     const timerStart = document.querySelector("#timer-start");
     const timerReset = document.querySelector("#timer-reset");
 
     let timerInterval = null;
-    let timerRemaining = 300 * 1000;
+    let timerRemaining = 5 * 60 * 1000;
     let timerEnd = 0;
 
     function formatTimer(ms) {
@@ -497,6 +522,12 @@ setInterval(updateClock, 50);
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = totalSeconds % 60;
       return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function getInputDuration() {
+      const minutes = Math.max(0, Number(timerMinutes.value) || 0);
+      const seconds = Math.min(59, Math.max(0, Number(timerSeconds.value) || 0));
+      return (minutes * 60 + seconds) * 1000;
     }
 
     function updateTimer() {
@@ -507,6 +538,7 @@ setInterval(updateClock, 50);
         clearInterval(timerInterval);
         timerInterval = null;
         timerStart.textContent = "スタート";
+        timerStatus.textContent = "時間になりました！";
       }
     }
 
@@ -516,52 +548,56 @@ setInterval(updateClock, 50);
         clearInterval(timerInterval);
         timerInterval = null;
         timerStart.textContent = "再開";
+        timerStatus.textContent = "一時停止中";
         return;
       }
 
       if (timerRemaining <= 0) {
-        const minutes = Number(timerMinutes.value) || 0;
-        const seconds = Math.min(59, Number(timerSeconds.value) || 0);
-        timerRemaining = (minutes * 60 + seconds) * 1000;
+        timerRemaining = getInputDuration();
       }
 
-      if (timerRemaining <= 0) return;
+      if (timerRemaining <= 0) {
+        timerStatus.textContent = "1秒以上の時間を設定してください";
+        return;
+      }
 
       timerEnd = Date.now() + timerRemaining;
       timerStart.textContent = "一時停止";
+      timerStatus.textContent = "";
       timerInterval = setInterval(updateTimer, 100);
     });
 
     timerReset.addEventListener("click", () => {
       clearInterval(timerInterval);
       timerInterval = null;
-      const minutes = Number(timerMinutes.value) || 0;
-      const seconds = Math.min(59, Number(timerSeconds.value) || 0);
-      timerRemaining = (minutes * 60 + seconds) * 1000;
+      timerRemaining = getInputDuration();
       timerDisplay.textContent = formatTimer(timerRemaining);
       timerStart.textContent = "スタート";
+      timerStatus.textContent = "";
     });
 
     document.querySelectorAll(".preset").forEach((button) => {
       button.addEventListener("click", () => {
         clearInterval(timerInterval);
         timerInterval = null;
-        const total = Number(button.dataset.seconds);
-        timerMinutes.value = Math.floor(total / 60);
-        timerSeconds.value = total % 60;
-        timerRemaining = total * 1000;
+
+        const totalSeconds = Number(button.dataset.seconds);
+        timerMinutes.value = Math.floor(totalSeconds / 60);
+        timerSeconds.value = totalSeconds % 60;
+        timerRemaining = totalSeconds * 1000;
+
         timerDisplay.textContent = formatTimer(timerRemaining);
         timerStart.textContent = "スタート";
+        timerStatus.textContent = "";
       });
     });
 
     [timerMinutes, timerSeconds].forEach((input) => {
       input.addEventListener("input", () => {
         if (timerInterval) return;
-        const minutes = Number(timerMinutes.value) || 0;
-        const seconds = Math.min(59, Number(timerSeconds.value) || 0);
-        timerRemaining = (minutes * 60 + seconds) * 1000;
+        timerRemaining = getInputDuration();
         timerDisplay.textContent = formatTimer(timerRemaining);
+        timerStatus.textContent = "";
       });
     });
 
@@ -582,6 +618,7 @@ setInterval(updateClock, 50);
       const minutes = Math.floor(hundredths / 6000);
       const seconds = Math.floor((hundredths % 6000) / 100);
       const fraction = hundredths % 100;
+
       return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(fraction).padStart(2, "0")}`;
     }
 
@@ -594,6 +631,7 @@ setInterval(updateClock, 50);
         stopwatchElapsed = currentStopwatchTime();
         clearInterval(stopwatchInterval);
         stopwatchInterval = null;
+        stopwatchDisplay.textContent = formatStopwatch(stopwatchElapsed);
         stopwatchStart.textContent = "再開";
         lapButton.disabled = true;
       } else {
@@ -607,10 +645,17 @@ setInterval(updateClock, 50);
     });
 
     lapButton.addEventListener("click", () => {
+      if (!stopwatchInterval) return;
+
       lapCount++;
       const lap = document.createElement("div");
+      const label = document.createElement("span");
+      const time = document.createElement("span");
+
       lap.className = "lap";
-      lap.innerHTML = `<span>ラップ ${lapCount}</span><span>${formatStopwatch(currentStopwatchTime())}</span>`;
+      label.textContent = `ラップ ${lapCount}`;
+      time.textContent = formatStopwatch(currentStopwatchTime());
+      lap.append(label, time);
       laps.prepend(lap);
     });
 
