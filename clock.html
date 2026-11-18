@@ -125,6 +125,8 @@
     }
 
     .hand {
+  transform-origin: 100px 100px;
+  transform-box: view-box;
   stroke-linecap: round;
 }
 
@@ -286,143 +288,27 @@ body[data-theme="purple"] {
   </main>
 
   <script>
-    const svgNS = "http://www.w3.org/2000/svg";
-    const ticks = document.querySelector("#ticks");
-    const numbers = document.querySelector("#numbers");
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
 
-    // 時計の目盛りと数字を作成
-    for (let i = 0; i < 60; i++) {
-      const line = document.createElementNS(svgNS, "line");
-      line.setAttribute("x1", "100");
-      line.setAttribute("y1", i % 5 === 0 ? "11" : "15");
-      line.setAttribute("x2", "100");
-      line.setAttribute("y2", i % 5 === 0 ? "21" : "19");
-      line.setAttribute("class", i % 5 === 0 ? "tick major" : "tick");
-      line.setAttribute("transform", `rotate(${i * 6} 100 100)`);
-      ticks.appendChild(line);
-    }
+    const hourAngle = (h % 12 + m / 60 + s / 3600) * 30;
+    const minuteAngle = (m + s / 60) * 6;
+    const secondAngle = (s + ms / 1000) * 6;
 
-    for (let hour = 1; hour <= 12; hour++) {
-      const angle = (hour * 30 - 90) * Math.PI / 180;
-      const text = document.createElementNS(svgNS, "text");
-      text.setAttribute("x", String(100 + Math.cos(angle) * 65));
-      text.setAttribute("y", String(100 + Math.sin(angle) * 65));
-      text.setAttribute("class", "number");
-      text.textContent = hour;
-      numbers.appendChild(text);
-    }
+    document.querySelector("#hour-hand")
+      .setAttribute("transform", `rotate(${hourAngle} 100 100)`);
+    document.querySelector("#minute-hand")
+      .setAttribute("transform", `rotate(${minuteAngle} 100 100)`);
+    document.querySelector("#second-hand")
+      .setAttribute("transform", `rotate(${secondAngle} 100 100)`);
+  }
 
-    const digitalTime = document.querySelector("#digital-time");
-    const dateElement = document.querySelector("#date");
-    const timezoneElement = document.querySelector("#timezone");
-    const button24 = document.querySelector("#format24");
-    const button12 = document.querySelector("#format12");
-
-    let use24Hour = localStorage.getItem("clock-format") !== "12";
-
-    function updateClock() {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const milliseconds = now.getMilliseconds();
-
-      // 時計の針を更新
-      const hourAngle = ((hours % 12) + minutes / 60) * 30;
-      const minuteAngle = (minutes + seconds / 60) * 6;
-      const secondAngle = (seconds + milliseconds / 1000) * 6;
-
-      document.querySelector("#hour-hand")
-        .setAttribute("transform", `rotate(${hourAngle} 100 100)`);
-      document.querySelector("#minute-hand")
-        .setAttribute("transform", `rotate(${minuteAngle} 100 100)`);
-      document.querySelector("#second-hand")
-        .setAttribute("transform", `rotate(${secondAngle} 100 100)`);
-
-      digitalTime.textContent = new Intl.DateTimeFormat("ja-JP", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: !use24Hour
-      }).format(now);
-
-      dateElement.textContent = new Intl.DateTimeFormat("ja-JP", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        weekday: "long"
-      }).format(now);
-
-      timezoneElement.textContent =
-        Intl.DateTimeFormat().resolvedOptions().timeZone || "ローカル時間";
-
-      button24.setAttribute("aria-pressed", String(use24Hour));
-      button12.setAttribute("aria-pressed", String(!use24Hour));
-    }
-
-    button24.addEventListener("click", () => {
-      use24Hour = true;
-      localStorage.setItem("clock-format", "24");
-      updateClock();
-    });
-
-    button12.addEventListener("click", () => {
-      use24Hour = false;
-      localStorage.setItem("clock-format", "12");
-      updateClock();
-    });
-
-    updateClock();
-    setInterval(updateClock, 50);
-
-    <div class="theme-switch" role="group" aria-label="時計のテーマ">
-  <button
-    class="theme-button"
-    type="button"
-    data-theme="blue"
-    aria-label="青のテーマ"
-    aria-pressed="true"
-  ></button>
-
-  <button
-    class="theme-button"
-    type="button"
-    data-theme="orange"
-    aria-label="オレンジのテーマ"
-    aria-pressed="false"
-  ></button>
-
-  <button
-    class="theme-button"
-    type="button"
-    data-theme="purple"
-    aria-label="紫のテーマ"
-    aria-pressed="false"
-  ></button>
-  const themeButtons = document.querySelectorAll(".theme-button");
-const savedTheme = localStorage.getItem("clock-theme") || "blue";
-
-function applyTheme(theme) {
-  document.body.dataset.theme = theme;
-
-  themeButtons.forEach((button) => {
-    button.setAttribute(
-      "aria-pressed",
-      String(button.dataset.theme === theme)
-    );
-  });
-
-  localStorage.setItem("clock-theme", theme);
-}
-
-themeButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    applyTheme(button.dataset.theme);
-  });
-});
-
-applyTheme(savedTheme);
-</div>
-  </script>
+  updateClock();
+  setInterval(updateClock, 50);
+</script>
 </body>
 </html>
