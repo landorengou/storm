@@ -142,12 +142,10 @@
       dominant-baseline: central;
     }
 
-    .hand { transform-origin: 100px 100px; stroke-linecap: round; }
-    .hour-hand { stroke: #f4f6fb; stroke-width: 5; }
-    .minute-hand { stroke: var(--accent); stroke-width: 3.2; }
-    .second-hand { stroke: #f9a8d4; stroke-width: 1.5; }
-    .center-cap { fill: #f9a8d4; }
-
+ .hand {
+  stroke-linecap: round;
+  transform-origin: 100px 100px;
+}
     .digital-time,
     .stopwatch-display,
     .timer-display {
@@ -313,9 +311,13 @@
           <circle class="face" cx="100" cy="100" r="95"/>
           <g id="ticks"></g>
           <g id="numbers"></g>
-          <line class="hand hour-hand" id="hour-hand" x1="100" y1="105" x2="100" y2="59"/>
-          <line class="hand minute-hand" id="minute-hand" x1="100" y1="105" x2="100" y2="34"/>
-          <line class="hand second-hand" id="second-hand" x1="100" y1="112" x2="100" y2="27"/>
+<line id="hour-hand" class="hand hour-hand"
+      x1="100" y1="100" x2="100" y2="58"></line>
+<line id="minute-hand" class="hand minute-hand"
+      x1="100" y1="100" x2="100" y2="33"></line>
+<line id="second-hand" class="hand second-hand"
+      x1="100" y1="100" x2="100" y2="25"></line>
+<circle cx="100" cy="100" r="4" fill="#f9a8d4"></circle>
           <circle class="center-cap" cx="100" cy="100" r="4"/>
         </svg>
 
@@ -417,42 +419,33 @@
     let use24Hour = localStorage.getItem("clock-format") !== "12";
 
     function updateClock() {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const milliseconds = now.getMilliseconds();
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const seconds = now.getSeconds();
+  const milliseconds = now.getMilliseconds();
 
-      document.querySelector("#hour-hand").setAttribute(
-        "transform", `rotate(${((hours % 12) + minutes / 60) * 30} 100 100)`
-      );
-      document.querySelector("#minute-hand").setAttribute(
-        "transform", `rotate(${(minutes + seconds / 60) * 6} 100 100)`
-      );
-      document.querySelector("#second-hand").setAttribute(
-        "transform", `rotate(${(seconds + milliseconds / 1000) * 6} 100 100)`
-      );
+  const hourAngle =
+    (hours % 12 + minutes / 60 + seconds / 3600) * 30;
 
-      document.querySelector("#digital-time").textContent =
-        new Intl.DateTimeFormat("ja-JP", {
-          hour: "2-digit", minute: "2-digit", second: "2-digit",
-          hour12: !use24Hour
-        }).format(now);
+  const minuteAngle =
+    (minutes + seconds / 60) * 6;
 
-      document.querySelector("#date").textContent =
-        new Intl.DateTimeFormat("ja-JP", {
-          year: "numeric", month: "long", day: "numeric", weekday: "long"
-        }).format(now);
+  const secondAngle =
+    (seconds + milliseconds / 1000) * 6;
 
-      document.querySelector("#timezone").textContent =
-        Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
-    }
+  document.getElementById("hour-hand")
+    .setAttribute("transform", `rotate(${hourAngle} 100 100)`);
 
-    document.querySelector("#format24").addEventListener("click", () => {
-      use24Hour = true;
-      localStorage.setItem("clock-format", "24");
-      setFormatButtons();
-      updateClock();
+  document.getElementById("minute-hand")
+    .setAttribute("transform", `rotate(${minuteAngle} 100 100)`);
+
+  document.getElementById("second-hand")
+    .setAttribute("transform", `rotate(${secondAngle} 100 100)`);
+}
+
+updateClock();
+setInterval(updateClock, 50);
     });
 
     document.querySelector("#format12").addEventListener("click", () => {
