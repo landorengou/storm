@@ -3,15 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>アナログ時計</title>
+  <title>Clock Tools</title>
   <style>
     :root {
-      color-scheme: dark;
-      --text: #edf2ff;
-      --muted: #bdc8df;
       --accent: #7dd3fc;
-      --purple: #a78bfa;
-      --pink: #f9a8d4;
+      --accent-dark: #6366f1;
+      --text: #f8fafc;
+      --muted: #bdc8df;
     }
 
     * { box-sizing: border-box; }
@@ -22,72 +20,98 @@
       padding: 24px;
       display: grid;
       place-items: center;
-      overflow: hidden;
+      overflow-x: hidden;
       color: var(--text);
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       background:
-        radial-gradient(circle at 15% 20%, #a78bfa38, transparent 26%),
-        radial-gradient(circle at 80% 30%, #7dd3fc30, transparent 28%),
-        radial-gradient(circle at 50% 85%, #f9a8d420, transparent 32%),
-        linear-gradient(135deg, #070d19, #111827 55%, #0a1221);
+        radial-gradient(circle at 15% 20%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 26%),
+        radial-gradient(circle at 80% 30%, color-mix(in srgb, var(--accent-dark) 28%, transparent), transparent 30%),
+        linear-gradient(135deg, #070d19, #111827);
+      transition: background .4s;
+    }
+
+    body[data-theme="orange"] {
+      --accent: #fb923c;
+      --accent-dark: #ea580c;
+    }
+
+    body[data-theme="purple"] {
+      --accent: #c4b5fd;
+      --accent-dark: #8b5cf6;
     }
 
     .orb {
       position: fixed;
       z-index: 0;
-      width: 360px;
+      width: 380px;
       aspect-ratio: 1;
       border-radius: 50%;
       filter: blur(35px);
-      opacity: .7;
+      background: color-mix(in srgb, var(--accent) 20%, transparent);
       pointer-events: none;
       animation: drift 18s ease-in-out infinite alternate;
     }
 
-    .orb-one {
-      top: -110px;
-      left: -100px;
-      background: #7dd3fc2c;
-    }
-
-    .orb-two {
-      right: -120px;
-      bottom: -100px;
-      background: #a78bfa30;
-      animation-delay: -7s;
-    }
+    .orb-one { top: -110px; left: -100px; }
+    .orb-two { right: -120px; bottom: -100px; animation-delay: -7s; }
 
     @keyframes drift {
-      from { transform: translate(0, 0) scale(1); }
       to { transform: translate(35px, 30px) scale(1.12); }
     }
 
-    .clock-card {
+    .app {
       position: relative;
       z-index: 1;
-      width: min(100%, 520px);
-      padding: 30px 24px;
-      border: 1px solid #ffffff1a;
-      border-radius: 28px;
-      background: #0c1424b8;
-      box-shadow: 0 24px 70px #0007, inset 0 1px #ffffff0b;
-      backdrop-filter: blur(18px);
-      text-align: center;
+      width: min(100%, 620px);
     }
 
-    .eyebrow {
-      margin: 0 0 22px;
-      color: var(--muted);
-      font-size: .78rem;
-      letter-spacing: .2em;
-      text-transform: uppercase;
+    .card {
+      padding: 28px 24px;
+      border: 1px solid #ffffff1a;
+      border-radius: 28px;
+      background: #0c1424dc;
+      box-shadow: 0 24px 70px #0007;
+      backdrop-filter: blur(18px);
     }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 5px;
+      border-radius: 14px;
+      background: #070d19aa;
+    }
+
+    .tabs button,
+    .action-button,
+    .preset,
+    .theme-button {
+      border: 0;
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .tabs button {
+      padding: 11px 5px;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .tabs button[aria-selected="true"] {
+      background: #7c6cf0;
+      color: white;
+    }
+
+    .view { padding-top: 24px; }
+    .view[hidden] { display: none; }
 
     .clock {
       display: block;
-      width: min(72vw, 320px);
+      width: min(72vw, 300px);
       margin: 0 auto;
-      overflow: visible;
       filter: drop-shadow(0 10px 24px #0005);
     }
 
@@ -95,12 +119,6 @@
       fill: #111b2c;
       stroke: #ffffff25;
       stroke-width: 1.5;
-    }
-
-    .face-inner {
-      fill: none;
-      stroke: #ffffff0c;
-      stroke-width: 1;
     }
 
     .tick {
@@ -124,67 +142,43 @@
       dominant-baseline: central;
     }
 
-    .hand {
-  transform-origin: 100px 100px;
-  transform-box: view-box;
-  stroke-linecap: round;
-}
+    .hand { transform-origin: 100px 100px; stroke-linecap: round; }
+    .hour-hand { stroke: #f4f6fb; stroke-width: 5; }
+    .minute-hand { stroke: var(--accent); stroke-width: 3.2; }
+    .second-hand { stroke: #f9a8d4; stroke-width: 1.5; }
+    .center-cap { fill: #f9a8d4; }
 
-    .hour-hand {
-      stroke: #f4f6fb;
-      stroke-width: 5;
-    }
-
-    .minute-hand {
-      stroke: var(--accent);
-      stroke-width: 3.2;
-    }
-
-    .second-hand {
-      stroke: var(--pink);
-      stroke-width: 1.5;
-    }
-
-    .center-cap { fill: var(--pink); }
-
-    .digital-time {
-      margin-top: 20px;
-      font-size: clamp(2rem, 9vw, 3.2rem);
+    .digital-time,
+    .stopwatch-display,
+    .timer-display {
+      margin: 18px 0;
+      text-align: center;
+      font-size: clamp(2.2rem, 10vw, 3.8rem);
       font-weight: 650;
       letter-spacing: -.04em;
       font-variant-numeric: tabular-nums;
     }
 
-    .date {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 1rem;
-    }
-
+    .date,
     .timezone {
-      margin-top: 8px;
-      color: #bdc8dfb8;
-      font-size: .8rem;
+      color: var(--muted);
+      text-align: center;
     }
 
     .format-switch {
-      display: inline-flex;
+      display: flex;
+      justify-content: center;
       gap: 5px;
-      margin-top: 22px;
-      padding: 5px;
-      border: 1px solid #ffffff18;
-      border-radius: 12px;
-      background: #070d19aa;
+      margin-top: 18px;
     }
 
     .format-switch button {
-      padding: 9px 14px;
-      border: 0;
-      border-radius: 8px;
-      background: transparent;
+      padding: 8px 12px;
+      border: 1px solid #ffffff18;
+      border-radius: 9px;
+      background: #070d19aa;
       color: var(--muted);
       font: inherit;
-      cursor: pointer;
     }
 
     .format-switch button[aria-pressed="true"] {
@@ -192,123 +186,451 @@
       color: white;
     }
 
-    button:focus-visible {
-      outline: 2px solid var(--accent);
+    .theme-switch {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .theme-button {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #ffffff55;
+      border-radius: 50%;
+    }
+
+    .theme-button[data-theme="blue"] {
+      background: linear-gradient(135deg, #7dd3fc, #6366f1);
+    }
+
+    .theme-button[data-theme="orange"] {
+      background: linear-gradient(135deg, #fb923c, #ea580c);
+    }
+
+    .theme-button[data-theme="purple"] {
+      background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+    }
+
+    .theme-button[aria-pressed="true"] {
+      outline: 2px solid white;
       outline-offset: 3px;
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
-      }
+    .timer-inputs {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 10px;
     }
 
-    .theme-switch {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 18px;
-}
+    .timer-inputs label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: .8rem;
+    }
 
-.theme-button {
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 3px solid #ffffff55;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 4px 14px #0005;
-}
+    .timer-inputs input {
+      width: 86px;
+      padding: 11px 6px;
+      border: 1px solid #ffffff18;
+      border-radius: 10px;
+      outline: none;
+      background: #070d19;
+      color: white;
+      text-align: center;
+      font: inherit;
+      font-size: 1.35rem;
+    }
 
-.theme-button[data-theme="blue"] {
-  background: linear-gradient(135deg, #7dd3fc, #6366f1);
-}
+    .colon { padding-bottom: 10px; }
 
-.theme-button[data-theme="orange"] {
-  background: linear-gradient(135deg, #fb923c, #ea580c);
-}
+    .presets,
+    .actions,
+    .laps {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
 
-.theme-button[data-theme="purple"] {
-  background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
-}
+    .preset,
+    .action-button {
+      padding: 9px 13px;
+      border: 1px solid #ffffff18;
+      border-radius: 10px;
+      background: #202636;
+    }
 
-.theme-button[aria-pressed="true"] {
-  outline: 2px solid white;
-  outline-offset: 3px;
-}
+    .action-button.primary {
+      min-width: 130px;
+      background: #7c6cf0;
+    }
 
-body[data-theme="blue"] {
-  --accent: #7dd3fc;
-  --accent-dark: #6366f1;
-}
+    .laps {
+      max-height: 180px;
+      overflow: auto;
+      display: block;
+      border-top: 1px solid #ffffff18;
+    }
 
-body[data-theme="orange"] {
-  --accent: #fb923c;
-  --accent-dark: #ea580c;
-  --purple: #fdba74;
-  --pink: #f97316;
-}
+    .lap {
+      display: flex;
+      justify-content: space-between;
+      padding: 9px 4px;
+      border-bottom: 1px solid #ffffff12;
+      font-variant-numeric: tabular-nums;
+    }
 
-body[data-theme="purple"] {
-  --accent: #c4b5fd;
-  --accent-dark: #8b5cf6;
-  --purple: #c4b5fd;
-  --pink: #d8b4fe;
-}
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    @media (max-width: 420px) {
+      .card { padding: 20px 14px; }
+      .tabs button { font-size: .82rem; }
+      .timer-inputs input { width: 72px; }
+    }
   </style>
 </head>
-<body>
-  <div class="orb orb-one" aria-hidden="true"></div>
-  <div class="orb orb-two" aria-hidden="true"></div>
+<body data-theme="blue">
+  <div class="orb orb-one"></div>
+  <div class="orb orb-two"></div>
 
-  <main class="clock-card">
-    <p class="eyebrow">現在の時刻</p>
+  <main class="app">
+    <section class="card">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-view="clock">時計</button>
+        <button role="tab" aria-selected="false" data-view="timer">タイマー</button>
+        <button role="tab" aria-selected="false" data-view="stopwatch">ストップウォッチ</button>
+      </div>
 
-    <svg class="clock" viewBox="0 0 200 200" role="img" aria-label="現在時刻を示すアナログ時計">
-      <circle class="face" cx="100" cy="100" r="95" />
-      <circle class="face-inner" cx="100" cy="100" r="79" />
-      <g id="ticks"></g>
-      <g id="numbers"></g>
+      <section class="view" id="clock-view">
+        <svg class="clock" viewBox="0 0 200 200" aria-label="アナログ時計">
+          <circle class="face" cx="100" cy="100" r="95"/>
+          <g id="ticks"></g>
+          <g id="numbers"></g>
+          <line class="hand hour-hand" id="hour-hand" x1="100" y1="105" x2="100" y2="59"/>
+          <line class="hand minute-hand" id="minute-hand" x1="100" y1="105" x2="100" y2="34"/>
+          <line class="hand second-hand" id="second-hand" x1="100" y1="112" x2="100" y2="27"/>
+          <circle class="center-cap" cx="100" cy="100" r="4"/>
+        </svg>
 
-      <line class="hand hour-hand" id="hour-hand" x1="100" y1="105" x2="100" y2="59" />
-      <line class="hand minute-hand" id="minute-hand" x1="100" y1="105" x2="100" y2="34" />
-      <line class="hand second-hand" id="second-hand" x1="100" y1="112" x2="100" y2="27" />
-      <circle class="center-cap" cx="100" cy="100" r="4" />
-    </svg>
+        <div class="digital-time" id="digital-time">--:--:--</div>
+        <div class="date" id="date"></div>
+        <div class="timezone" id="timezone"></div>
 
-    <div class="digital-time" id="digital-time" aria-live="off">--:--:--</div>
-    <div class="date" id="date">----</div>
-    <div class="timezone" id="timezone"></div>
+        <div class="format-switch">
+          <button id="format24" aria-pressed="true">24時間</button>
+          <button id="format12" aria-pressed="false">12時間</button>
+        </div>
 
-    <div class="format-switch" role="group" aria-label="デジタル時刻の表示形式">
-      <button type="button" id="format24" aria-pressed="true">24時間</button>
-      <button type="button" id="format12" aria-pressed="false">12時間</button>
-    </div>
+        <div class="theme-switch" aria-label="テーマ">
+          <button class="theme-button" data-theme="blue" aria-pressed="true" aria-label="青"></button>
+          <button class="theme-button" data-theme="orange" aria-pressed="false" aria-label="オレンジ"></button>
+          <button class="theme-button" data-theme="purple" aria-pressed="false" aria-label="紫"></button>
+        </div>
+      </section>
+
+      <section class="view" id="timer-view" hidden>
+        <div class="timer-inputs">
+          <div>
+            <label for="timer-minutes">分</label>
+            <input id="timer-minutes" type="number" min="0" max="999" value="5">
+          </div>
+          <span class="colon">:</span>
+          <div>
+            <label for="timer-seconds">秒</label>
+            <input id="timer-seconds" type="number" min="0" max="59" value="0">
+          </div>
+        </div>
+
+        <div class="presets">
+          <button class="preset" data-seconds="60">1分</button>
+          <button class="preset" data-seconds="300">5分</button>
+          <button class="preset" data-seconds="600">10分</button>
+          <button class="preset" data-seconds="1500">25分</button>
+        </div>
+
+        <div class="timer-display" id="timer-display">05:00</div>
+        <div class="actions">
+          <button class="action-button primary" id="timer-start">スタート</button>
+          <button class="action-button" id="timer-reset">リセット</button>
+        </div>
+      </section>
+
+      <section class="view" id="stopwatch-view" hidden>
+        <div class="stopwatch-display" id="stopwatch-display">00:00.00</div>
+        <div class="actions">
+          <button class="action-button primary" id="stopwatch-start">スタート</button>
+          <button class="action-button" id="lap-button" disabled>ラップ</button>
+          <button class="action-button" id="stopwatch-reset">リセット</button>
+        </div>
+        <div class="laps" id="laps"></div>
+      </section>
+    </section>
   </main>
 
   <script>
-  function updateClock() {
-    const now = new Date();
-    const h = now.getHours();
-    const m = now.getMinutes();
-    const s = now.getSeconds();
-    const ms = now.getMilliseconds();
+    const svgNS = "http://www.w3.org/2000/svg";
 
-    const hourAngle = (h % 12 + m / 60 + s / 3600) * 30;
-    const minuteAngle = (m + s / 60) * 6;
-    const secondAngle = (s + ms / 1000) * 6;
+    // タブ切り替え
+    document.querySelectorAll(".tabs button").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tabs button").forEach((tab) =>
+          tab.setAttribute("aria-selected", String(tab === button))
+        );
+        document.querySelectorAll(".view").forEach((view) => {
+          view.hidden = view.id !== `${button.dataset.view}-view`;
+        });
+      });
+    });
 
-    document.querySelector("#hour-hand")
-      .setAttribute("transform", `rotate(${hourAngle} 100 100)`);
-    document.querySelector("#minute-hand")
-      .setAttribute("transform", `rotate(${minuteAngle} 100 100)`);
-    document.querySelector("#second-hand")
-      .setAttribute("transform", `rotate(${secondAngle} 100 100)`);
-  }
+    // アナログ時計
+    const ticks = document.querySelector("#ticks");
+    const numbers = document.querySelector("#numbers");
 
-  updateClock();
-  setInterval(updateClock, 50);
-</script>
+    for (let i = 0; i < 60; i++) {
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", "100");
+      line.setAttribute("y1", i % 5 === 0 ? "11" : "15");
+      line.setAttribute("x2", "100");
+      line.setAttribute("y2", i % 5 === 0 ? "21" : "19");
+      line.setAttribute("class", i % 5 === 0 ? "tick major" : "tick");
+      line.setAttribute("transform", `rotate(${i * 6} 100 100)`);
+      ticks.appendChild(line);
+    }
+
+    for (let hour = 1; hour <= 12; hour++) {
+      const angle = (hour * 30 - 90) * Math.PI / 180;
+      const text = document.createElementNS(svgNS, "text");
+      text.setAttribute("x", 100 + Math.cos(angle) * 65);
+      text.setAttribute("y", 100 + Math.sin(angle) * 65);
+      text.setAttribute("class", "number");
+      text.textContent = hour;
+      numbers.appendChild(text);
+    }
+
+    let use24Hour = localStorage.getItem("clock-format") !== "12";
+
+    function updateClock() {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+      const milliseconds = now.getMilliseconds();
+
+      document.querySelector("#hour-hand").setAttribute(
+        "transform", `rotate(${((hours % 12) + minutes / 60) * 30} 100 100)`
+      );
+      document.querySelector("#minute-hand").setAttribute(
+        "transform", `rotate(${(minutes + seconds / 60) * 6} 100 100)`
+      );
+      document.querySelector("#second-hand").setAttribute(
+        "transform", `rotate(${(seconds + milliseconds / 1000) * 6} 100 100)`
+      );
+
+      document.querySelector("#digital-time").textContent =
+        new Intl.DateTimeFormat("ja-JP", {
+          hour: "2-digit", minute: "2-digit", second: "2-digit",
+          hour12: !use24Hour
+        }).format(now);
+
+      document.querySelector("#date").textContent =
+        new Intl.DateTimeFormat("ja-JP", {
+          year: "numeric", month: "long", day: "numeric", weekday: "long"
+        }).format(now);
+
+      document.querySelector("#timezone").textContent =
+        Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
+    }
+
+    document.querySelector("#format24").addEventListener("click", () => {
+      use24Hour = true;
+      localStorage.setItem("clock-format", "24");
+      setFormatButtons();
+      updateClock();
+    });
+
+    document.querySelector("#format12").addEventListener("click", () => {
+      use24Hour = false;
+      localStorage.setItem("clock-format", "12");
+      setFormatButtons();
+      updateClock();
+    });
+
+    function setFormatButtons() {
+      document.querySelector("#format24").setAttribute("aria-pressed", use24Hour);
+      document.querySelector("#format12").setAttribute("aria-pressed", !use24Hour);
+    }
+
+    setFormatButtons();
+    updateClock();
+    setInterval(updateClock, 50);
+
+    // テーマ
+    const themeButtons = document.querySelectorAll(".theme-button");
+    const savedTheme = localStorage.getItem("clock-theme") || "blue";
+
+    function applyTheme(theme) {
+      document.body.dataset.theme = theme;
+      themeButtons.forEach((button) =>
+        button.setAttribute("aria-pressed", String(button.dataset.theme === theme))
+      );
+      localStorage.setItem("clock-theme", theme);
+    }
+
+    themeButtons.forEach((button) =>
+      button.addEventListener("click", () => applyTheme(button.dataset.theme))
+    );
+    applyTheme(savedTheme);
+
+    // タイマー
+    const timerMinutes = document.querySelector("#timer-minutes");
+    const timerSeconds = document.querySelector("#timer-seconds");
+    const timerDisplay = document.querySelector("#timer-display");
+    const timerStart = document.querySelector("#timer-start");
+    const timerReset = document.querySelector("#timer-reset");
+
+    let timerInterval = null;
+    let timerRemaining = 300 * 1000;
+    let timerEnd = 0;
+
+    function formatTimer(ms) {
+      const totalSeconds = Math.ceil(Math.max(0, ms) / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
+    function updateTimer() {
+      timerRemaining = Math.max(0, timerEnd - Date.now());
+      timerDisplay.textContent = formatTimer(timerRemaining);
+
+      if (timerRemaining === 0) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        timerStart.textContent = "スタート";
+      }
+    }
+
+    timerStart.addEventListener("click", () => {
+      if (timerInterval) {
+        timerRemaining = Math.max(0, timerEnd - Date.now());
+        clearInterval(timerInterval);
+        timerInterval = null;
+        timerStart.textContent = "再開";
+        return;
+      }
+
+      if (timerRemaining <= 0) {
+        const minutes = Number(timerMinutes.value) || 0;
+        const seconds = Math.min(59, Number(timerSeconds.value) || 0);
+        timerRemaining = (minutes * 60 + seconds) * 1000;
+      }
+
+      if (timerRemaining <= 0) return;
+
+      timerEnd = Date.now() + timerRemaining;
+      timerStart.textContent = "一時停止";
+      timerInterval = setInterval(updateTimer, 100);
+    });
+
+    timerReset.addEventListener("click", () => {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      const minutes = Number(timerMinutes.value) || 0;
+      const seconds = Math.min(59, Number(timerSeconds.value) || 0);
+      timerRemaining = (minutes * 60 + seconds) * 1000;
+      timerDisplay.textContent = formatTimer(timerRemaining);
+      timerStart.textContent = "スタート";
+    });
+
+    document.querySelectorAll(".preset").forEach((button) => {
+      button.addEventListener("click", () => {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        const total = Number(button.dataset.seconds);
+        timerMinutes.value = Math.floor(total / 60);
+        timerSeconds.value = total % 60;
+        timerRemaining = total * 1000;
+        timerDisplay.textContent = formatTimer(timerRemaining);
+        timerStart.textContent = "スタート";
+      });
+    });
+
+    [timerMinutes, timerSeconds].forEach((input) => {
+      input.addEventListener("input", () => {
+        if (timerInterval) return;
+        const minutes = Number(timerMinutes.value) || 0;
+        const seconds = Math.min(59, Number(timerSeconds.value) || 0);
+        timerRemaining = (minutes * 60 + seconds) * 1000;
+        timerDisplay.textContent = formatTimer(timerRemaining);
+      });
+    });
+
+    // ストップウォッチ
+    const stopwatchDisplay = document.querySelector("#stopwatch-display");
+    const stopwatchStart = document.querySelector("#stopwatch-start");
+    const stopwatchReset = document.querySelector("#stopwatch-reset");
+    const lapButton = document.querySelector("#lap-button");
+    const laps = document.querySelector("#laps");
+
+    let stopwatchInterval = null;
+    let stopwatchElapsed = 0;
+    let stopwatchStartTime = 0;
+    let lapCount = 0;
+
+    function formatStopwatch(ms) {
+      const hundredths = Math.floor(ms / 10);
+      const minutes = Math.floor(hundredths / 6000);
+      const seconds = Math.floor((hundredths % 6000) / 100);
+      const fraction = hundredths % 100;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(fraction).padStart(2, "0")}`;
+    }
+
+    function currentStopwatchTime() {
+      return stopwatchElapsed + (performance.now() - stopwatchStartTime);
+    }
+
+    stopwatchStart.addEventListener("click", () => {
+      if (stopwatchInterval) {
+        stopwatchElapsed = currentStopwatchTime();
+        clearInterval(stopwatchInterval);
+        stopwatchInterval = null;
+        stopwatchStart.textContent = "再開";
+        lapButton.disabled = true;
+      } else {
+        stopwatchStartTime = performance.now();
+        stopwatchInterval = setInterval(() => {
+          stopwatchDisplay.textContent = formatStopwatch(currentStopwatchTime());
+        }, 20);
+        stopwatchStart.textContent = "一時停止";
+        lapButton.disabled = false;
+      }
+    });
+
+    lapButton.addEventListener("click", () => {
+      lapCount++;
+      const lap = document.createElement("div");
+      lap.className = "lap";
+      lap.innerHTML = `<span>ラップ ${lapCount}</span><span>${formatStopwatch(currentStopwatchTime())}</span>`;
+      laps.prepend(lap);
+    });
+
+    stopwatchReset.addEventListener("click", () => {
+      clearInterval(stopwatchInterval);
+      stopwatchInterval = null;
+      stopwatchElapsed = 0;
+      lapCount = 0;
+      stopwatchDisplay.textContent = "00:00.00";
+      stopwatchStart.textContent = "スタート";
+      lapButton.disabled = true;
+      laps.replaceChildren();
+    });
+  </script>
 </body>
 </html>
