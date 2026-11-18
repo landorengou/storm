@@ -201,6 +201,59 @@
         animation-iteration-count: 1 !important;
       }
     }
+
+    .theme-switch {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.theme-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 3px solid #ffffff55;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 14px #0005;
+}
+
+.theme-button[data-theme="blue"] {
+  background: linear-gradient(135deg, #7dd3fc, #6366f1);
+}
+
+.theme-button[data-theme="orange"] {
+  background: linear-gradient(135deg, #fb923c, #ea580c);
+}
+
+.theme-button[data-theme="purple"] {
+  background: linear-gradient(135deg, #c4b5fd, #8b5cf6);
+}
+
+.theme-button[aria-pressed="true"] {
+  outline: 2px solid white;
+  outline-offset: 3px;
+}
+
+body[data-theme="blue"] {
+  --accent: #7dd3fc;
+  --accent-dark: #6366f1;
+}
+
+body[data-theme="orange"] {
+  --accent: #fb923c;
+  --accent-dark: #ea580c;
+  --purple: #fdba74;
+  --pink: #f97316;
+}
+
+body[data-theme="purple"] {
+  --accent: #c4b5fd;
+  --accent-dark: #8b5cf6;
+  --purple: #c4b5fd;
+  --pink: #d8b4fe;
+}
   </style>
 </head>
 <body>
@@ -321,6 +374,55 @@
 
     updateClock();
     setInterval(updateClock, 50);
+
+    <div class="theme-switch" role="group" aria-label="時計のテーマ">
+  <button
+    class="theme-button"
+    type="button"
+    data-theme="blue"
+    aria-label="青のテーマ"
+    aria-pressed="true"
+  ></button>
+
+  <button
+    class="theme-button"
+    type="button"
+    data-theme="orange"
+    aria-label="オレンジのテーマ"
+    aria-pressed="false"
+  ></button>
+
+  <button
+    class="theme-button"
+    type="button"
+    data-theme="purple"
+    aria-label="紫のテーマ"
+    aria-pressed="false"
+  ></button>
+  const themeButtons = document.querySelectorAll(".theme-button");
+const savedTheme = localStorage.getItem("clock-theme") || "blue";
+
+function applyTheme(theme) {
+  document.body.dataset.theme = theme;
+
+  themeButtons.forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.theme === theme)
+    );
+  });
+
+  localStorage.setItem("clock-theme", theme);
+}
+
+themeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    applyTheme(button.dataset.theme);
+  });
+});
+
+applyTheme(savedTheme);
+</div>
   </script>
 </body>
 </html>
