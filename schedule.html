@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>今日の予定メーカー | Storm</title>
+  <link rel="icon" href="mansyuboal-_1_.ico">
+  <style>
+    :root { --blue:#2389c2; --ink:#173b50; --pale:#edf7fc; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; min-height:100vh; padding:20px;
+      background:linear-gradient(135deg,#75bfe5,#38a4e38c);
+      color:var(--ink); font-family:sans-serif;
+    }
+    .app {
+      width:min(760px,100%); margin:0 auto; padding:28px;
+      background:rgba(255,255,255,.96); border-radius:22px;
+      box-shadow:0 16px 40px rgba(21,91,131,.16);
+    }
+    h1 { margin:0 0 6px; text-align:center; }
+    .date { text-align:center; margin:0 0 22px; color:#607681; }
+    .form { display:grid; grid-template-columns:110px 1fr auto; gap:8px; }
+    input, button { min-height:46px; border:1px solid #cfe2ed; border-radius:10px; font:inherit; }
+    input { width:100%; padding:10px 12px; }
+    button { border:none; padding:10px 14px; cursor:pointer; background:#d7eeff; color:var(--ink); }
+    button.primary { background:var(--blue); color:white; }
+    button:hover { filter:brightness(.97); }
+    #plan { list-style:none; margin:22px 0 0; padding:0; }
+    #plan li {
+      display:grid; grid-template-columns:90px 1fr auto; align-items:center; gap:12px;
+      margin-bottom:9px; padding:14px; background:var(--pale); border-radius:12px;
+    }
+    #plan li.done .name { text-decoration:line-through; opacity:.55; }
+    .time { font-weight:bold; font-variant-numeric:tabular-nums; }
+    .name { overflow-wrap:anywhere; }
+    .delete { min-height:36px; background:#ffe4df; }
+    .summary { margin-top:16px; text-align:center; color:#607681; }
+    .home { display:inline-block; margin-top:18px; color:var(--ink); font-weight:bold; text-decoration:none; }
+    @media (max-width:560px) {
+      body { padding:10px; }.app { padding:18px; }
+      .form { grid-template-columns:100px 1fr; }.form button { grid-column:1/-1; }
+      #plan li { grid-template-columns:72px 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>今日の予定メーカー</h1>
+    <p id="today" class="date"></p>
+
+    <form id="plan-form" class="form">
+      <input id="time-input" type="time" value="09:00" required aria-label="予定の時刻">
+      <input id="name-input" type="text" maxlength="100" placeholder="やることを入力" required aria-label="予定">
+      <button class="primary" type="submit">予定を追加</button>
+    </form>
+
+    <ul id="plan" aria-live="polite"></ul>
+    <p id="summary" class="summary"></p>
+    <a class="home" href="index.html">← トップへ戻る</a>
+  </main>
+
+  <script>
+    const STORAGE_KEY = 'storm-daily-plan-v1';
+    const form = document.getElementById('plan-form');
+    const timeInput = document.getElementById('time-input');
+    const nameInput = document.getElementById('name-input');
+    const list = document.getElementById('plan');
+    const summary = document.getElementById('summary');
+
+    const now = new Date();
+    document.getElementById('today').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+
+    let plans = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if (saved && saved.date === now.toLocaleDateString('ja-JP')) plans = saved.items || [];
+    } catch { plans = []; }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        date: now.toLocaleDateString('ja-JP'),
+        items: plans
+      }));
+    }
+
+    function render() {
+      plans.sort((a,b) => a.time.localeCompare(b.time));
+      list.innerHTML = '';
+
+      plans.forEach((plan,index) => {
+        const li = document.createElement('li');
+        if (plan.done) li.classList.add('done');
+
+        const time = document.createElement('span');
+        time.className = 'time';
+        time.textContent = plan.time;
+
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = plan.name;
+        name.style.cursor = 'pointer';
+        name.title = 'クリックして完了状態を切り替え';
+        name.addEventListener('click', () => {
+          plan.done = !plan.done;
+          save(); render();
+        });
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete';
+        remove.textContent = '削除';
+        remove.addEventListener('click', () => {
+          plans.splice(index,1); save(); render();
+        });
+
+        li.append(time,name,remove);
+        list.appendChild(li);
+      });
+
+      const done = plans.filter(plan => plan.done).length;
+      summary.textContent = plans.length
+        ? `${done} / ${plans.length} 件完了`
+        : '予定を追加して、一日の流れを作りましょう。';
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const name = nameInput.value.trim();
+      if (!name) return;
+      plans.push({ time: timeInput.value, name, done:false });
+      nameInput.value = '';
+      save(); render();
+      nameInput.focus();
+    });
+
+    render();
+  </script>
+</body>
+</html>
