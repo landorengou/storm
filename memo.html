@@ -185,7 +185,7 @@
   <script>
     const STORAGE_KEY = "nagai-memo-v1";
     const titleInput = document.getElementById("title");
-    const bodyInput = document.getElementByElementById("body");
+    const bodyInput = document.getElementById("body");
     const textColorInput = document.getElementById("text-color");
     const status = document.getElementById("status");
     const counts = document.getElementById("counts");
@@ -252,14 +252,13 @@
       scheduleSave();
     });
 
-    document.addEventListener("keydown", event => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-        event.preventException?.();
-        event.preventDefault();
-        clearTimeout(saveTimer);
-        save();
-      }
-    });
+   document.addEventListener("keydown", event => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+    event.preventDefault();
+    clearTimeout(saveTimer);
+    save();
+  }
+});
 
     document.getElementById("download").addEventListener("click", () => {
       const text = `${titleInput.value || "無題のメモ"}\n\n${bodyInput.value}`;
