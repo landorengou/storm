@@ -6,13 +6,11 @@
   <title>ながいメモ</title>
   <style>
     :root {
-      color-scheme: light;
       --bg: #f5f4f0;
       --paper: #fffefa;
       --text: #292a27;
       --muted: #85857e;
       --line: #e8e6df;
-      --accent: #527a68;
     }
 
     * { box-sizing: border-box; }
@@ -38,10 +36,7 @@
     .brand {
       font-size: 15px;
       font-weight: 700;
-      letter-spacing: .04em;
     }
-
-    .brand span { color: var(--accent); }
 
     .actions,
     .color-control {
@@ -50,10 +45,7 @@
       gap: 10px;
     }
 
-    .color-control {
-      font-size: 13px;
-      color: var(--text);
-    }
+    .color-control { font-size: 13px; }
 
     #text-color {
       width: 38px;
@@ -76,8 +68,6 @@
       cursor: pointer;
     }
 
-    button:hover { background: #f5f4f0; }
-
     main {
       width: min(820px, calc(100% - 32px));
       min-height: calc(100vh - 64px);
@@ -86,7 +76,6 @@
       border: 1px solid var(--line);
       border-radius: 12px;
       background: var(--paper);
-      box-shadow: 0 8px 30px rgb(40 40 30 / 4%);
     }
 
     .save-status {
@@ -102,40 +91,35 @@
       border: 0;
       outline: 0;
       background: transparent;
-      color: var(--text);
+      color: inherit;
       font: inherit;
       font-size: clamp(26px, 5vw, 36px);
       font-weight: 700;
     }
 
-    #title::placeholder { color: #c4c2ba; }
-
     #body {
-  width: 100%;
-  min-height: 60vh;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: 16px;
-  line-height: 2;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
+      width: 100%;
+      min-height: 60vh;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 16px;
+      line-height: 2;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
 
-#body:empty::before {
-  content: attr(data-placeholder);
-  color: #b6b4ac;
-  pointer-events: none;
-}
-
-    #body::placeholder { color: #b6b4ac; }
+    #body:empty::before {
+      content: attr(data-placeholder);
+      color: #b6b4ac;
+      pointer-events: none;
+    }
 
     footer {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
       padding-top: 16px;
       border-top: 1px solid var(--line);
       color: var(--muted);
@@ -158,8 +142,6 @@
         border-radius: 0;
       }
 
-      #body { min-height: 65vh; }
-
       .color-control span { display: none; }
       button { padding: 8px 10px; font-size: 12px; }
     }
@@ -167,7 +149,7 @@
 </head>
 <body>
   <header>
-    <div class="brand"><span>●</span> ながいメモ</div>
+    <div class="brand">ながいメモ</div>
     <div class="actions">
       <label class="color-control" for="text-color">
         <span>文字色</span>
@@ -179,12 +161,21 @@
   </header>
 
   <main>
+    <div class="save-status" id="status" aria-live="polite">
+      この端末に保存されます
+    </div>
+
+    <input id="title" type="text" placeholder="タイトル" aria-label="メモのタイトル">
+
     <div
-  id="body"
-  contenteditable="true"
-  aria-label="メモの本文"
-  data-placeholder="ここから書き始めましょう…"
-></div>
+      id="body"
+      contenteditable="true"
+      role="textbox"
+      aria-multiline="true"
+      aria-label="メモの本文"
+      data-placeholder="ここから書き始めましょう…"
+    ></div>
+
     <footer>
       <span id="counts">0文字</span>
       <span>自動保存 · Ctrl / ⌘ + S で保存</span>
@@ -192,128 +183,139 @@
   </main>
 
   <script>
-  const STORAGE_KEY = "nagai-memo-v1";
-const titleInput = document.getElementById("title");
-const bodyInput = document.getElementById("body");
-const textColorInput = document.getElementById("text-color");
-const status = document.getElementById("status");
-const counts = document.getElementById("counts");
-let saveTimer;
-let savedRange = null;
+    const STORAGE_KEY = "nagai-memo-v1";
+    const titleInput = document.getElementById("title");
+    const bodyInput = document.getElementById("body");
+    const textColorInput = document.getElementById("text-color");
+    const status = document.getElementById("status");
+    const counts = document.getElementById("counts");
+    let saveTimer;
+    let savedRange = null;
 
-// 本文内で選択した範囲を、カラーピッカーを操作する前に記録
-function rememberSelection() {
-  const selection = window.getSelection();
+    function getBodyText() {
+      return bodyInput.innerText.replace(/\n$/, "");
+    }
 
-  if (
-    selection &&
-    !selection.isCollapsed &&
-    selection.rangeCount > 0 &&
-    bodyInput.contains(selection.anchorNode) &&
-    bodyInput.contains(selection.focusNode)
-  ) {
-    savedRange = selection.getRangeAt(0).cloneRange();
-  }
-}
+    function updateCounts() {
+      const text = getBodyText();
+      counts.textContent = `${[...text].length.toLocaleString()}文字`;
+    }
 
-function getBodyText() {
-  return bodyInput.innerText.replace(/\n$/, "");
-}
+    function save() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          title: titleInput.value,
+          body: bodyInput.innerHTML,
+          textColor: textColorInput.value
+        }));
+        status.textContent = "保存しました";
+      } catch {
+        status.textContent = "保存できませんでした";
+      }
+    }
 
-function updateCounts() {
-  const text = getBodyText();
-  counts.textContent = `${[...text].length.toLocaleString()}文字`;
-}
+    function scheduleSave() {
+      status.textContent = "保存中…";
+      updateCounts();
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    title: titleInput.value,
-    body: bodyInput.innerHTML,
-    textColor: textColorInput.value
-  }));
-  status.textContent = "保存しました";
-}
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 500);
+    }
 
-function scheduleSave() {
-  status.textContent = "保存中…";
-  updateCounts();
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(save, 500);
-}
+    function rememberSelection() {
+      const selection = window.getSelection();
 
-function changeTextColor(color) {
-  // 選択範囲があれば、その部分だけ色を変更
-  if (savedRange && bodyInput.contains(savedRange.commonAncestorContainer)) {
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(savedRange);
+      if (
+        selection &&
+        selection.rangeCount &&
+        !selection.isCollapsed &&
+        bodyInput.contains(selection.anchorNode) &&
+        bodyInput.contains(selection.focusNode)
+      ) {
+        savedRange = selection.getRangeAt(0).cloneRange();
+      }
+    }
 
-    document.execCommand("styleWithCSS", false, true);
-    document.execCommand("foreColor", false, color);
-    savedRange = null;
-  } else {
-    // 選択範囲がなければ、メモの基本文字色を変更
-    document.documentElement.style.setProperty("--text", color);
-  }
+    function changeTextColor(color) {
+      document.documentElement.style.setProperty("--text", color);
 
-  scheduleSave();
-}
+      if (savedRange) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
 
-// 保存済みデータを読み込む
-try {
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        document.execCommand("foreColor", false, color);
+        savedRange = null;
+      }
 
-  if (saved) {
-    titleInput.value = saved.title || "";
-    bodyInput.innerHTML = saved.body || "";
-    textColorInput.value = saved.textColor || "#292a27";
-    document.documentElement.style.setProperty("--text", textColorInput.value);
-  }
-} catch {
-  status.textContent = "保存データを読み込めませんでした";
-}
+      scheduleSave();
+    }
 
-updateCounts();
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
 
-titleInput.addEventListener("input", scheduleSave);
-bodyInput.addEventListener("input", scheduleSave);
-bodyInput.addEventListener("mouseup", rememberSelection);
-bodyInput.addEventListener("keyup", rememberSelection);
-document.addEventListener("selectionchange", rememberSelection);
+      if (saved) {
+        titleInput.value = saved.title || "";
+        bodyInput.innerHTML = saved.body || "";
+        textColorInput.value = saved.textColor || "#292a27";
+        document.documentElement.style.setProperty(
+          "--text",
+          textColorInput.value
+        );
+      }
+    } catch {
+      status.textContent = "保存データを読み込めませんでした";
+    }
 
-textColorInput.addEventListener("input", () => {
-  changeTextColor(textColorInput.value);
-});
+    updateCounts();
 
-document.addEventListener("keydown", event => {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-    event.preventDefault();
-    clearTimeout(saveTimer);
-    save();
-  }
-});
+    titleInput.addEventListener("input", scheduleSave);
+    bodyInput.addEventListener("input", scheduleSave);
+    bodyInput.addEventListener("mouseup", rememberSelection);
+    bodyInput.addEventListener("keyup", rememberSelection);
+    document.addEventListener("selectionchange", rememberSelection);
 
-document.getElementById("download").addEventListener("click", () => {
-  const text = `${titleInput.value || "無題のメモ"}\n\n${getBodyText()}`;
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${(titleInput.value || "メモ").replace(/[\\/:*?"<>|]/g, "_")}.txt`;
-  link.click();
-  URL.revokeObjectURL(url);
-});
+    textColorInput.addEventListener("input", () => {
+      changeTextColor(textColorInput.value);
+    });
 
-document.getElementById("clear").addEventListener("click", () => {
-  if (!confirm("今のメモを消して、新しいメモを始めますか？")) return;
+    document.addEventListener("keydown", event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        clearTimeout(saveTimer);
+        save();
+      }
+    });
 
-  titleInput.value = "";
-  bodyInput.innerHTML = "";
-  savedRange = null;
-  updateCounts();
-  save();
-  titleInput.focus();
-});
+    document.getElementById("download").addEventListener("click", () => {
+      const text =
+        `${titleInput.value || "無題のメモ"}\n\n${getBodyText()}`;
+
+      const blob = new Blob([text], {
+        type: "text/plain;charset=utf-8"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download =
+        `${(titleInput.value || "メモ").replace(/[\\/:*?"<>|]/g, "_")}.txt`;
+
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+      if (!confirm("今のメモを消して、新しいメモを始めますか？")) return;
+
+      titleInput.value = "";
+      bodyInput.innerHTML = "";
+      savedRange = null;
+      updateCounts();
+      save();
+      titleInput.focus();
+    });
   </script>
 </body>
 </html>
