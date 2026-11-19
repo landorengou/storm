@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ながら集中タイマー | Storm</title>
+  <style>
+    :root {
+      --ink: #173b50;
+      --blue: #2389c2;
+      --pale: #e9f4fb;
+      --white: #ffffff;
+      --danger: #ffe4df;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #75bfe5, #38a4e38c);
+      color: var(--ink);
+      font-family: sans-serif;
+    }
+
+    .app {
+      width: min(920px, 100%);
+      background: rgba(255,255,255,.96);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 16px 40px rgba(21,91,131,.18);
+    }
+
+    h1 { margin: 0 0 8px; }
+    .subtitle { margin: 0 0 24px; color: #607681; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.25fr);
+      gap: 20px;
+    }
+
+    .panel {
+      border-radius: 18px;
+      background: var(--pale);
+      padding: 22px;
+    }
+
+    .modes, .actions, .task-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modes { justify-content: center; }
+
+    button, input {
+      min-height: 44px;
+      border: 0;
+      border-radius: 10px;
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--white);
+      color: var(--ink);
+      padding: 10px 14px;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    .modes button.active,
+    .primary {
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    #time {
+      margin: 24px 0 16px;
+      text-align: center;
+      font-size: clamp(4.5rem, 14vw, 7.5rem);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress {
+      height: 9px;
+      margin: 0 8px 20px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #cfdfE8;
+    }
+
+    #progress {
+      display: block;
+      height: 100%;
+      width: 100%;
+      background: var(--blue);
+      transition: width .3s linear;
+    }
+
+    .actions { justify-content: center; }
+
+    #toggle { min-width: 120px; }
+
+    .task-form input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #cfe2ed;
+      padding: 10px 12px;
+    }
+
+    .task-form button {
+      background: var(--blue);
+      color: var(--white);
+    }
+
+    #task-list {
+      margin: 14px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    #task-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 4px;
+      border-bottom: 1px solid #d5e4ec;
+    }
+
+    #task-list li.done .task-name {
+      text-decoration: line-through;
+      opacity: .55;
+    }
+
+    #task-list input[type="checkbox"] {
+      width: 19px;
+      min-height: 19px;
+    }
+
+    .task-name {
+      flex: 1;
+      overflow-wrap: anywhere;
+    }
+
+    .delete-task {
+      min-height: 34px;
+      background: var(--danger);
+      padding: 6px 10px;
+    }
+
+    .home {
+      display: inline-block;
+      margin-top: 20px;
+      color: var(--ink);
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 10px; }
+      .app { padding: 18px; border-radius: 16px; }
+      .layout { grid-template-columns: 1fr; }
+      .modes button { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>ながら集中タイマー</h1>
+    <p class="subtitle">集中と休憩の時間を区切って、今日のタスクを少しずつ片づけます。</p>
+
+    <div class="layout">
+      <section class="panel" aria-label="集中タイマー">
+        <div class="modes">
+          <button type="button" class="active" data-minutes="25">集中 25分</button>
+          <button type="button" data-minutes="5">休憩 5分</button>
+          <button type="button" data-minutes="15">休憩 15分</button>
+        </div>
+        <div id="time" aria-live="polite">25:00</div>
+        <div class="progress" aria-label="タイマーの進行状況">
+          <span id="progress"></span>
+        </div>
+        <div class="actions">
+          <button id="toggle" class="primary" type="button">開始</button>
+          <button id="reset" type="button">リセット</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="タスクリスト">
+        <h2>今日のタスク</h2>
+        <form id="task-form" class="task-form">
+          <input id="task-input" type="text" maxlength="80" placeholder="やることを入力" aria-label="タスク名">
+          <button type="submit">追加</button>
+        </form>
+        <ul id="task-list"></ul>
+      </section>
+    </div>
+
+    <a class="home" href="index.html">← トップへ戻る</a>
+  </main>
+
+  <script>
+    const timeView = document.getElementById('time');
+    const toggleButton = document.getElementById('toggle');
+    const resetButton = document.getElementById('reset');
+    const progress = document.getElementById('progress');
+    const modeButtons = [...document.querySelectorAll('.modes button')];
+
+    let selectedMinutes = 25;
+    let remaining = selectedMinutes * 60;
+    let timerId = null;
+
+    function showTime() {
+      const minutes = Math.floor(remaining / 60);
+      const seconds = remaining % 60;
+      timeView.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      progress.style.width = `${(remaining / (selectedMinutes * 60)) * 100}%`;
+      document.title = `${timeView.textContent} | Storm`;
+    }
+
+    function stopTimer() {
+      clearInterval(timerId);
+      timerId = null;
+      toggleButton.textContent = '開始';
+    }
+
+    function playChime() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
+      const context = new AudioContext();
+      [0, 0.18, 0.36].forEach(delay => {
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.frequency.value = 660;
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        gain.gain.setValueAtTime(0.08, context.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + delay + 0.15);
+        oscillator.start(context.currentTime + delay);
+        oscillator.stop(context.currentTime + delay + 0.16);
+      });
+    }
+
+    toggleButton.addEventListener('click', () => {
+      if (timerId !== null) {
+        stopTimer();
+        return;
+      }
+
+      if (remaining <= 0) remaining = selectedMinutes * 60;
+      toggleButton.textContent = '停止';
+
+      timerId = setInterval(() => {
+        remaining -= 1;
+        showTime();
+
+        if (remaining <= 0) {
+          remaining = 0;
+          stopTimer();
+          playChime();
+          alert('タイマーが終了しました！');
+        }
+      }, 1000);
+    });
+
+    resetButton.addEventListener('click', () => {
+      stopTimer();
+      remaining = selectedMinutes * 60;
+      showTime();
+    });
+
+    modeButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        stopTimer();
+        modeButtons.forEach(item => item.classList.remove('active'));
+        button.classList.add('active');
+        selectedMinutes = Number(button.dataset.minutes);
+        remaining = selectedMinutes * 60;
+        showTime();
+      });
+    });
+
+    const STORAGE_KEY = 'storm-focus-tasks-v1';
+    const form = document.getElementById('task-form');
+    const input = document.getElementById('task-input');
+    const list = document.getElementById('task-list');
+    let tasks = [];
+
+    try {
+      tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    } catch {
+      tasks = [];
+    }
+
+    function saveTasks() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      list.innerHTML = '';
+
+      tasks.forEach((task, index) => {
+        const item = document.createElement('li');
+        if (task.done) item.classList.add('done');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.done;
+        checkbox.addEventListener('change', () => {
+          tasks[index].done = checkbox.checked;
+          saveTasks();
+          renderTasks();
+        });
+
+        const name = document.createElement('span');
+        name.className = 'task-name';
+        name.textContent = task.name;
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete-task';
+        remove.textContent = '削除';
+        remove.addEventListener('click', () => {
+          tasks.splice(index, 1);
+          saveTasks();
+          renderTasks();
+        });
+
+        item.append(checkbox, name, remove);
+        list.appendChild(item);
+      });
+    }
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const name = input.value.trim();
+      if (!name) return;
+
+      tasks.unshift({ name, done: false });
+      input.value = '';
+      saveTasks();
+      renderTasks();
+    });
+
+    showTime();
+    renderTasks();
+  </script>
+</body>
+</html>
