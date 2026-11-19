@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ながいメモ</title>
-  <link rel="icon" href="mansyuboal-_1_.ico">
   <style>
     :root {
       color-scheme: light;
@@ -44,10 +43,26 @@
 
     .brand span { color: var(--accent); }
 
-    .actions {
+    .actions,
+    .color-control {
       display: flex;
       align-items: center;
       gap: 10px;
+    }
+
+    .color-control {
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    #text-color {
+      width: 38px;
+      height: 38px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      cursor: pointer;
     }
 
     button {
@@ -122,7 +137,12 @@
     }
 
     @media (max-width: 600px) {
-      header { height: 58px; padding: 0 16px; }
+      header {
+        height: auto;
+        min-height: 58px;
+        padding: 10px 16px;
+      }
+
       main {
         width: 100%;
         min-height: calc(100vh - 58px);
@@ -131,8 +151,10 @@
         border: 0;
         border-radius: 0;
       }
+
       #body { min-height: 65vh; }
-      .actions { gap: 6px; }
+
+      .color-control span { display: none; }
       button { padding: 8px 10px; font-size: 12px; }
     }
   </style>
@@ -141,7 +163,11 @@
   <header>
     <div class="brand"><span>●</span> ながいメモ</div>
     <div class="actions">
-      <button id="download" type="button">テキストを書き出す</button>
+      <label class="color-control" for="text-color">
+        <span>文字色</span>
+        <input id="text-color" type="color" value="#292a27" aria-label="文字色">
+      </label>
+      <button id="download" type="button">書き出す</button>
       <button id="clear" type="button">新しくする</button>
     </div>
   </header>
@@ -159,10 +185,15 @@
   <script>
     const STORAGE_KEY = "nagai-memo-v1";
     const titleInput = document.getElementById("title");
-    const bodyInput = document.getElementById("body");
+    const bodyInput = document.getElementByElementById("body");
+    const textColorInput = document.getElementById("text-color");
     const status = document.getElementById("status");
     const counts = document.getElementById("counts");
     let saveTimer;
+
+    function applyTextColor(color) {
+      document.documentElement.style.setProperty("--text", color);
+    }
 
     function updateCounts() {
       const text = bodyInput.value;
@@ -181,14 +212,15 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           title: titleInput.value,
-          body: bodyInput.value
+          body: bodyInput.value,
+          textColor: textColorInput.value
         }));
         status.textContent = `保存しました · ${new Date().toLocaleTimeString("ja-JP", {
           hour: "2-digit",
           minute: "2-digit"
         })}`;
       } catch {
-        status.textContent = "保存できませんでした。ブラウザーの設定をご確認ください";
+        status.textContent = "保存できませんでした";
       }
     }
 
@@ -204,6 +236,8 @@
       if (saved) {
         titleInput.value = saved.title || "";
         bodyInput.value = saved.body || "";
+        textColorInput.value = saved.textColor || "#292a27";
+        applyTextColor(textColorInput.value);
       }
     } catch {
       status.textContent = "保存データを読み込めませんでした";
@@ -213,8 +247,14 @@
     titleInput.addEventListener("input", scheduleSave);
     bodyInput.addEventListener("input", scheduleSave);
 
+    textColorInput.addEventListener("input", () => {
+      applyTextColor(textColorInput.value);
+      scheduleSave();
+    });
+
     document.addEventListener("keydown", event => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventException?.();
         event.preventDefault();
         clearTimeout(saveTimer);
         save();
