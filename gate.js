@@ -55,6 +55,8 @@ if (!r.ok) throw new Error("failed");
       } catch (e) {
         err.textContent = "送信に失敗しました。もう一度お試しください。";
         return;
+            try { localStorage.setItem(KEY, email); } catch (e) {}
+    window.location.href = "kiyaku.html";
       }
     }
     try { localStorage.setItem(KEY, email); } catch (e) {}
