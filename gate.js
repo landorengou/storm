@@ -46,11 +46,12 @@
     }
     if (ENDPOINT) {
       try {
-        await fetch(ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email })
-        });
+        const r = await fetch(ENDPOINT, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email })
+});
+if (!r.ok) throw new Error("failed");
       } catch (e) {
         err.textContent = "送信に失敗しました。もう一度お試しください。";
         return;
