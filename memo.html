@@ -180,7 +180,7 @@
         padding: 12px 16px;
       }
 
-      .actions { width: 100%; justify-content: flex-end; }
+      .actions { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
 
       main {
         width: 100%;
@@ -206,6 +206,7 @@
         <span>文字色</span>
         <input id="text-color" type="color" value="#292a27" aria-label="文字色">
       </label>
+      <button id="share" type="button">共有</button>
       <button id="download" type="button">書き出す</button>
       <button id="clear" type="button">メモを消す</button>
     </div>
@@ -382,6 +383,28 @@
       scheduleSave();
     }
 
+    async function shareNote() {
+      clearTimeout(saveTimer);
+      save();
+      const title = titleInput.value.trim() || "無題のメモ";
+      const text = `${title}\n\n${getBodyText()}`;
+
+      try {
+        if (navigator.share) {
+          await navigator.share({ title, text });
+          status.textContent = "共有しました";
+        } else if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          status.textContent = "メモをクリップボードにコピーしました";
+        } else {
+          throw new Error("sharing unavailable");
+        }
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        status.textContent = "共有できませんでした。HTTPS接続で開いてお試しください";
+      }
+    }
+
     function exportNote() {
       const text = `${titleInput.value || "無題のメモ"}\n\n${getBodyText()}`;
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
@@ -435,6 +458,7 @@
     document.addEventListener("selectionchange", rememberSelection);
     textColorInput.addEventListener("input", () => changeTextColor(textColorInput.value));
     document.getElementById("add-tab").addEventListener("click", addNote);
+    document.getElementById("share").addEventListener("click", shareNote);
     document.getElementById("download").addEventListener("click", exportNote);
     document.getElementById("clear").addEventListener("click", clearCurrentNote);
 
