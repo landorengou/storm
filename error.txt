@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html>
+<body>
+<hgroup>
+<h1>error 404 NOT FOUND</h1>
+<p>現在メンテナンス中です。バグを修正しています。時間が経ったら入りなおしてください。</p>
+<div class="link-box"><a href="index.html">ホームに戻る</a></div>
+</hgroup>
+</body>
+</html>
