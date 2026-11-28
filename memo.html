@@ -1,14 +1,267 @@
 <!DOCTYPE html>
-<html>
-  <head>
-  <title>error 404 NOTFOUND-storm</title>
-  <link rel="stylesheet" href="style.css">
-  </head>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ながいメモ</title>
+  <style>
+    :root { --bg:#f5f4f0; --paper:#fffefa; --text:#292a27; --muted:#85857e; --line:#e8e6df; --accent:#527b68; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif; }
+    header { min-height:64px; padding:10px 28px; display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid var(--line); background:var(--paper); }
+    .brand { font-size:15px; font-weight:700; }
+    .actions,.color-control { display:flex; align-items:center; gap:10px; }
+    .color-control { font-size:13px; }
+    #text-color { width:38px; height:38px; padding:3px; border:1px solid var(--line); border-radius:8px; background:var(--paper); cursor:pointer; }
+    button { padding:9px 13px; border:1px solid var(--line); border-radius:8px; background:var(--paper); color:var(--text); font:inherit; font-size:13px; cursor:pointer; }
+    button:hover { background:#f3f2ed; }
+    main { width:min(900px,calc(100% - 32px)); min-height:calc(100vh - 64px); margin:32px auto; padding:36px 56px 48px; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+    .notes-tabs { display:flex; align-items:stretch; gap:8px; margin:0 -12px 24px; padding:0 12px 10px; border-bottom:1px solid var(--line); }
+    .tab-list { min-width:0; display:flex; align-items:center; gap:6px; overflow-x:auto; flex:1; }
+    .note-tab { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); background:transparent; }
+    .note-tab[aria-selected="true"] { color:var(--accent); border-color:var(--accent); background:#edf4ef; font-weight:700; }
+    #add-tab { flex:0 0 auto; color:var(--accent); font-size:18px; line-height:1; }
+    .save-status { min-height:20px; color:var(--muted); font-size:12px; }
+    #title { width:100%; margin:22px 0 18px; padding:0; border:0; outline:0; background:transparent; color:inherit; font:inherit; font-size:clamp(26px,5vw,36px); font-weight:700; }
+    #body { width:100%; min-height:60vh; border:0; outline:0; background:transparent; color:inherit; font:inherit; font-size:16px; line-height:2; white-space:pre-wrap; overflow-wrap:anywhere; }
+    #body:empty::before { content:attr(data-placeholder); color:#b6b4ac; pointer-events:none; }
+    footer { display:flex; justify-content:space-between; gap:12px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
+    @media (max-width:680px) {
+      header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
+      .actions { width:100%; justify-content:flex-end; flex-wrap:wrap; }
+      main { width:100%; min-height:calc(100vh - 100px); margin:0; padding:26px 20px 36px; border:0; border-radius:0; }
+      .notes-tabs { margin-right:-6px; margin-left:-6px; }
+      .color-control span { display:none; }
+      button { padding:8px 10px; font-size:12px; }
+      footer { flex-wrap:wrap; }
+    }
+  </style>
+</head>
 <body>
-<hgroup>
-<h1>error 404 NOT FOUND</h1>
-<p>現在メンテナンス中です。バグを修正しています。時間が経ったら入りなおしてください。</p>
-<div class="link-box"><a href="index.html">ホームに戻る</a></div>
-</hgroup>
+  <header>
+    <div class="brand">ながいメモ</div>
+    <div class="actions">
+      <label class="color-control" for="text-color"><span>文字色</span><input id="text-color" type="color" value="#292a27" aria-label="文字色"></label>
+      <button id="share" type="button">共有</button>
+      <button id="download" type="button">書き出す</button>
+      <button id="clear" type="button">メモを消す</button>
+    </div>
+  </header>
+  <main>
+    <div class="notes-tabs">
+      <div class="tab-list" id="tab-list" role="tablist" aria-label="メモ一覧"></div>
+      <button id="add-tab" type="button" title="新しいメモ (Ctrl + Alt + P)" aria-label="新しいメモを追加">＋</button>
+    </div>
+    <div class="save-status" id="status" aria-live="polite">この端末に自動保存されます</div>
+    <input id="title" type="text" placeholder="タイトル" aria-label="メモのタイトル">
+    <div id="body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="メモの本文" data-placeholder="ここから書き始めましょう…"></div>
+    <footer><span id="counts">0文字</span><span>自動保存 · Ctrl / ⌘ + S で保存 · Ctrl + Alt + P で新しいメモ</span></footer>
+  </main>
+  <script>
+    const STORAGE_KEY = "nagai-memo-tabs-v1";
+    const LEGACY_STORAGE_KEY = "nagai-memo-v1";
+    const titleInput = document.getElementById("title");
+    const bodyInput = document.getElementById("body");
+    const textColorInput = document.getElementById("text-color");
+    const status = document.getElementById("status");
+    const counts = document.getElementById("counts");
+    const tabList = document.getElementById("tab-list");
+    let notes = [];
+    let activeNoteId = null;
+    let saveTimer;
+    let savedRange = null;
+
+    function makeId() {
+      return window.crypto?.randomUUID ? crypto.randomUUID() : `memo-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+    function makeNote(data = {}) {
+      return {
+        id: typeof data.id === "string" ? data.id : makeId(),
+        title: typeof data.title === "string" ? data.title : "",
+        body: typeof data.body === "string" ? data.body : "",
+        textColor: /^#[0-9a-f]{6}$/i.test(data.textColor || "") ? data.textColor : "#292a27"
+      };
+    }
+    function activeNote() { return notes.find(note => note.id === activeNoteId); }
+    function bodyText() { return bodyInput.innerText.replace(/\n$/, ""); }
+    function updateCounts() { counts.textContent = `${[...bodyText()].length.toLocaleString()}文字`; }
+
+    function syncEditorToActiveNote() {
+      const note = activeNote();
+      if (!note) return;
+      note.title = titleInput.value;
+      note.body = bodyInput.innerHTML;
+      note.textColor = textColorInput.value;
+    }
+
+    // Persist the note collection exactly as it is in memory; do not read from the editor here.
+    function persistNotes() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ notes, activeNoteId }));
+        status.textContent = "保存しました";
+      } catch {
+        status.textContent = "保存できませんでした";
+      }
+      renderTabs();
+    }
+    function save() {
+      syncEditorToActiveNote();
+      persistNotes();
+    }
+    function scheduleSave() {
+      status.textContent = "保存中…";
+      updateCounts();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 400);
+    }
+    function renderTabs() {
+      tabList.replaceChildren();
+      notes.forEach((note, index) => {
+        const tab = document.createElement("button");
+        const label = note.title.trim() || `メモ ${index + 1}`;
+        tab.type = "button";
+        tab.className = "note-tab";
+        tab.setAttribute("role", "tab");
+        tab.setAttribute("aria-selected", String(note.id === activeNoteId));
+        tab.textContent = label;
+        tab.title = label;
+        tab.addEventListener("click", () => activateNote(note.id));
+        tabList.appendChild(tab);
+      });
+    }
+    function loadNote(note) {
+      titleInput.value = note.title;
+      bodyInput.innerHTML = note.body;
+      textColorInput.value = note.textColor;
+      document.documentElement.style.setProperty("--text", note.textColor);
+      savedRange = null;
+      updateCounts();
+      status.textContent = "この端末に自動保存されます";
+      renderTabs();
+    }
+
+    function activateNote(id) {
+      if (id === activeNoteId) return;
+      clearTimeout(saveTimer);
+
+      // Save the current editor to the OLD active note before changing activeNoteId.
+      syncEditorToActiveNote();
+      persistNotes();
+
+      const nextNote = notes.find(note => note.id === id);
+      if (!nextNote) return;
+      activeNoteId = id;
+      loadNote(nextNote);
+
+      // Persist selection only. Calling save() here would copy old editor contents into the new tab.
+      persistNotes();
+    }
+    function addNote() {
+      clearTimeout(saveTimer);
+      syncEditorToActiveNote();
+      const note = makeNote();
+      notes.push(note);
+      activeNoteId = note.id;
+      loadNote(note);
+      persistNotes();
+      titleInput.focus();
+    }
+    function rememberSelection() {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount && !selection.isCollapsed && bodyInput.contains(selection.anchorNode) && bodyInput.contains(selection.focusNode)) {
+        savedRange = selection.getRangeAt(0).cloneRange();
+      }
+    }
+    function changeTextColor(color) {
+      document.documentElement.style.setProperty("--text", color);
+      if (savedRange) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+        document.execCommand("foreColor", false, color);
+        savedRange = null;
+      }
+      scheduleSave();
+    }
+    async function shareNote() {
+      clearTimeout(saveTimer);
+      save();
+      const title = titleInput.value.trim() || "無題のメモ";
+      const text = `${title}\n\n${bodyText()}`;
+      try {
+        if (navigator.share) {
+          await navigator.share({ title, text });
+          status.textContent = "共有しました";
+        } else if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          status.textContent = "メモをコピーしました";
+        } else {
+          throw new Error("sharing unavailable");
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") status.textContent = "共有できませんでした。HTTPS接続でお試しください";
+      }
+    }
+    function exportNote() {
+      const blob = new Blob([`${titleInput.value || "無題のメモ"}\n\n${bodyText()}`], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${(titleInput.value || "メモ").replace(/[\\/:*?"<>|]/g, "_")}.txt`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+    function clearCurrentNote() {
+      if (!confirm("このメモの内容を消しますか？")) return;
+      titleInput.value = "";
+      bodyInput.innerHTML = "";
+      savedRange = null;
+      scheduleSave();
+      titleInput.focus();
+    }
+    function loadSavedNotes() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+        if (saved && Array.isArray(saved.notes) && saved.notes.length) {
+          notes = saved.notes.map(makeNote);
+          activeNoteId = notes.some(note => note.id === saved.activeNoteId) ? saved.activeNoteId : notes[0].id;
+          return;
+        }
+        // Migrate the original single-note data without discarding it.
+        const legacy = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY) || "null");
+        notes = [makeNote(legacy || {})];
+        activeNoteId = notes[0].id;
+        persistNotes();
+      } catch {
+        notes = [makeNote()];
+        activeNoteId = notes[0].id;
+        status.textContent = "保存データを読み込めませんでした";
+      }
+    }
+
+    loadSavedNotes();
+    loadNote(activeNote());
+    titleInput.addEventListener("input", scheduleSave);
+    bodyInput.addEventListener("input", scheduleSave);
+    bodyInput.addEventListener("mouseup", rememberSelection);
+    bodyInput.addEventListener("keyup", rememberSelection);
+    document.addEventListener("selectionchange", rememberSelection);
+    textColorInput.addEventListener("input", () => changeTextColor(textColorInput.value));
+    document.getElementById("add-tab").addEventListener("click", addNote);
+    document.getElementById("share").addEventListener("click", shareNote);
+    document.getElementById("download").addEventListener("click", exportNote);
+    document.getElementById("clear").addEventListener("click", clearCurrentNote);
+    document.addEventListener("keydown", event => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        clearTimeout(saveTimer);
+        save();
+      }
+      if (event.ctrlKey && event.altKey && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        addNote();
+      }
+    });
+  </script>
 </body>
 </html>
